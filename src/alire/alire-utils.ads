@@ -64,6 +64,14 @@ package Alire.Utils with Preelaborate is
                      Subst : String)
                      return String;
 
+   function Replace (Text  : UString;
+                     Match : String;
+                     Subst : String)
+                     return UString;
+
+   function Replace (Text     : UString;
+                     Patterns : Iii
+
    type Halves is (Head, Tail);
 
    function Split (Text      : String;

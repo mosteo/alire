@@ -11,7 +11,9 @@ library project Alire is
 
    for Library_Name use "alire";
 
-   Src_Dirs := ("src/alire");
+   Src_Dirs := ("src/alire",
+                "src/alire/os_linux",
+                "src/alire/resources");
 
    case Alire_Common.Host_Os is
       when "windows" => Src_Dirs := Src_Dirs & ("src/alire/os_windows");

@@ -1,3 +1,5 @@
+package body Alire.Templates is
+
 with Ada.Directories;
 with Ada.Text_IO; use Ada.Text_IO;
 
@@ -229,3 +231,6 @@ package body Alr.Templates is
    end Generate_Prj_Alr;
 
 end Alr.Templates;
+
+
+end Alire.Templates;

@@ -23,3 +23,9 @@
 [submodule "testsuite/fixtures/crates/libhello_git"]
 	path = testsuite/fixtures/crates/libhello_git
 	url = https://github.com/alire-project/libhello.git
+[submodule "deps/templates-parser"]
+	path = deps/templates-parser
+	url = https://github.com/AdaCore/templates-parser
+[submodule "deps/embedded-aws-templates"]
+	path = deps/embedded-aws-templates
+	url = https://github.com/mosteo/embedded-aws-templates
