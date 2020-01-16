@@ -6,7 +6,6 @@ with Alire.OS_Lib.Subprocess;
 with Alire.VFS;
 with Alire.Utils;             use Alire.Utils;
 
-with GNATCOLL.OS.Constants;
 with GNATCOLL.VFS;
 
 package body Alire.Origins.Deployers.Source_Archive is
@@ -175,20 +174,9 @@ package body Alire.Origins.Deployers.Source_Archive is
                --  the current dir at the end of the scope.
                Guard : Directories.Guard (Directories.Enter (Dst_Dir))
                  with Unreferenced;
-
-               --  Option required on Windows to force e.g. C: to mean
-               --  a local file location rather than the net host C.
-               --  Not available as standard on MacOS.
-               Force_Local_Option : constant String_Vector :=
-                 (case GNATCOLL.OS.Constants.OS is
-                     when GNATCOLL.OS.Windows =>
-                        Empty_Vector & "--force-local",
-                     when others =>
-                        Empty_Vector);
             begin
                Subprocess.Checked_Spawn
                  ("tar", Empty_Vector &
-                    Force_Local_Option &
                     "-x" &
                     "-f" & Src_File_Full_Name);
 
