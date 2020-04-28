@@ -63,6 +63,24 @@ package body Alr.Commands.Withing is
                                          " has no dependency solution");
          else
             Trace.Detail ("Dependency " & New_Dep & " successfully added");
+
+            declare
+               --  We need first a complete solution to turn dependencies into
+               --  releases:
+               New_Solution  : constant Query.Solution :=
+                                 Query.Resolve (Result);
+
+               --  Afterwards we can retrieve the new dependency project files
+               --  introduced by the new release in the solution:
+               Project_Files : constant Utils.String_Vector :=
+                                 New_Solution
+                                   .Releases (Requested.Crate)
+                                   .Project_Files
+                                     (Platform.Properties,
+                                      With_Path => False);
+            begin
+               null;
+            end;
          end if;
       end return;
    end Add;
