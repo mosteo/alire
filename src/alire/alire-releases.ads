@@ -419,6 +419,7 @@ private
        (case R.Origin.Kind is
            when External       => "external",
            when Filesystem     => "filesystem",
+           when Softlink       => "softlink",
            when System         => "system",
            when Source_Archive => R.Origin.Short_Unique_Id,
            when Git | Hg       => R.Origin.Short_Unique_Id,

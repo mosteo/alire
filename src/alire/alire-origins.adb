@@ -186,6 +186,17 @@ package body Alire.Origins is
                      This := New_Filesystem (Path);
                   end if;
 
+               when Softlink       =>
+                  if Path = "" then
+                     return Parent.Failure
+                       ("empty path given in local origin");
+                  elsif not GNAT.OS_Lib.Is_Directory (Path) then
+                     return Parent.Failure
+                       ("non-existing target for softlink: " & Path);
+                  else
+                     This := New_Softlink (Path);
+                  end if;
+
                when Source_Archive =>
                   raise Program_Error with "can't happen";
 
@@ -305,7 +316,12 @@ package body Alire.Origins is
    begin
       case This.Kind is
          when Filesystem =>
-            Table.Set (TOML_Keys.Origin, +("file://" & This.Path));
+            Table.Set (TOML_Keys.Origin,
+                       +(Prefixes (This.Kind).all & This.Path));
+
+         when Softlink =>
+            Table.Set (TOML_Keys.Origin,
+                       +(Prefixes (This.Kind).all & This.Path));
 
          when VCS_Kinds =>
             Table.Set (TOML_Keys.Origin, +(Prefixes (This.Kind).all &

@@ -26,9 +26,12 @@ package body Alire.Origins.Deployers is
    function New_Deployer (From : Origin) return Deployer'Class is
    begin
       case From.Kind is
-         when Origins.External =>
+         when Origins.External |
+              Origins.Softlink =>
             return External.Deployer'(Deployer'(Base => From)
                                       with null record);
+            --  We can reuse the external deployer for softlinks because
+            --  nothing needs to be done.
 
          when Origins.Filesystem =>
             return Filesystem.Deployer'(Deployer'(Base => From)

@@ -15,6 +15,7 @@ package Alire.Origins with Preelaborate is
       Git,            -- Remote git repo
       Hg,             -- Remote hg repo
       SVN,            -- Remote svn repo
+      Softlink,       -- A directory that isn't copied but used in place
       Source_Archive, -- Remote source archive
       System          -- System package
      );
@@ -53,7 +54,7 @@ package Alire.Origins with Preelaborate is
    --  Append commit as '@commit'
 
    function Path (This : Origin) return String
-     with Pre => This.Kind = Filesystem;
+     with Pre => This.Kind in Filesystem | Softlink;
 
    function Archive_URL (This : Origin) return Alire.URL
      with Pre => This.Kind = Source_Archive;
@@ -86,6 +87,12 @@ package Alire.Origins with Preelaborate is
    function New_External (Description : String) return Origin;
 
    function New_Filesystem (Path : String) return Origin;
+
+   function New_Softlink (Path : Absolute_Path) return Origin;
+   --  Softlinks are intended for local user during development; hence we
+   --  need not worry about relative paths and relocating in regard to the
+   --  `crate.toml` file basedir. At the time when softlinks are created by
+   --  the user they can be normalized to an absolute path.
 
    function New_Git (URL    : Alire.URL;
                      Commit : Git_Commit)
@@ -177,7 +184,7 @@ private
          when External =>
             Description : Unbounded_String;
 
-         when Filesystem =>
+         when Filesystem | Softlink =>
             Path : Unbounded_String;
 
          when VCS_Kinds =>
@@ -209,6 +216,9 @@ private
 
    function New_Filesystem (Path : String) return Origin is
      (Data => (Filesystem, Path => +Path, Hashes => <>));
+
+   function New_Softlink (Path : Absolute_Path) return Origin is
+     (Data => (Softlink, Path => +Path, Hashes => <>));
 
    function New_Git (URL    : Alire.URL;
                      Commit : Git_Commit)
@@ -264,6 +274,8 @@ private
              & This.Package_Name,
           when Filesystem     =>
              "path " & S (This.Data.Path),
+          when Softlink       =>
+             "softlink " & S (This.Data.Path),
           when External       =>
              "external " & S (This.Data.Description))
       & (if This.Data.Hashes.Is_Empty
@@ -278,6 +290,7 @@ private
    Prefix_Hg       : aliased constant String := "hg+";
    Prefix_SVN      : aliased constant String := "svn+";
    Prefix_File     : aliased constant String := "file://";
+   Prefix_Softlink : aliased constant String := "link://";
    Prefix_System   : aliased constant String := "system:";
 
    Prefixes : constant Prefix_Array :=
@@ -286,6 +299,7 @@ private
                  SVN            => Prefix_SVN'Access,
                  External       => Prefix_External'Access,
                  Filesystem     => Prefix_File'Access,
+                 Softlink       => Prefix_Softlink'Access,
                  System         => Prefix_System'Access,
                  Source_Archive => null);
 
