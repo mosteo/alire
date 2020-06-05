@@ -18,6 +18,10 @@ class PythonScriptDriver(ClassicTestDriver):
     "SUCCESS". Anything else results in the test failing.
     """
 
+    @property
+    def default_process_timeout(self):
+        return 0
+
     def run(self):
         env = dict(os.environ)
 
