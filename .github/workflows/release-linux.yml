@@ -1,0 +1,39 @@
+name: Linux assets
+
+on:
+  push:
+    tags:
+      - 'v*' # version tags
+  release:
+    types: [published, created, edited, prereleased, released]
+
+jobs:
+
+  build:
+    name: build on ${{ matrix.tag }}
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        tag: # Those are our dockerhub alire/gnat:tag machines
+            - centos-latest-community-latest
+            - community-latest
+            - debian-stable
+            - ubuntu-lts
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v1
+
+    - name: Check out submodules
+      run: git submodule update --init --recursive
+
+    - name: Pull docker image
+      run: docker pull alire/gnat:${{ matrix.tag }}
+
+    - name: Build
+      run: >
+        docker run -v${PWD}:/alire -w /alire
+        -e "BRANCH=${{ github.base_ref }}" -e "INDEX=${{ env.alire_index }}"
+        alire/gnat:${{ matrix.tag }} gprbuild -j0 -p -P alr_env
