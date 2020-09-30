@@ -1,11 +1,9 @@
-name: Linux assets
+name: Release on Linux
 
 on:
   push:
     tags:
       - 'v*' # version tags
-  release:
-    types: [published, created, edited, prereleased, released]
 
 jobs:
 
@@ -37,3 +35,27 @@ jobs:
         docker run -v${PWD}:/alire -w /alire
         -e "BRANCH=${{ github.base_ref }}" -e "INDEX=${{ env.alire_index }}"
         alire/gnat:${{ matrix.tag }} gprbuild -j0 -p -P alr_env
+
+    - name: Package binaries
+      run: zip alr-bin-${{ matrix.tag }}.zip bin/alr LICENSE.txt
+
+    - name: Create release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: ${{ github.ref }}
+        draft: false
+        prerelease: false
+
+   - name: Upload binary assets
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: alr-bin-${{ matrix.tag }}.zip
+        asset_name: alr-bin-${{ matrix.tag }}.zip
+        asset_content_type: application/zip 
