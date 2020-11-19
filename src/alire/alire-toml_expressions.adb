@@ -84,7 +84,6 @@ package body Alire.TOML_Expressions is
                                From.Pop_Expr (Case_Prefix, Case_Tab);
                begin
                   exit when Case_Key = "";
-                  Trace.Debug ("Master load (case): " & Case_Key);
 
                   --  A case table:
                   T := T and Find_Case (Case_Key, From.Message ("case"))
@@ -96,7 +95,6 @@ package body Alire.TOML_Expressions is
 
             --  Process remainder keys as static values:
             if Val.Kind /= TOML_Table or else Val.Keys'Length > 0 then
-               Trace.Debug ("Master load (static)");
                T := T and Static_Loader
                  (From.Descend (Parent, From.Unwrap, "static"));
             end if;
@@ -226,9 +224,6 @@ package body Alire.TOML_Expressions is
                Val : constant TOML.TOML_Value := TOML_Cases (I);
             begin
                if Val.Is_Present then
-                  Trace.Debug ("Loading key: " & Parent
-                               & " in case: " & Key
-                               & " from a: "   & Val.Kind'Img);
                   Tree_Cases (I) :=
                     Load
                       (Parent,

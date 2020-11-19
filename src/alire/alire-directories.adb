@@ -405,8 +405,6 @@ package body Alire.Directories is
       end Go_Down;
 
    begin
-      Trace.Debug ("Traversing folder: " & Start);
-
       Search (Start,
               "",
               (Directory => True, Ordinary_File => True, others => False),

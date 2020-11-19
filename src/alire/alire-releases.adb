@@ -627,7 +627,6 @@ package body Alire.Releases is
       package Dirs    renames Ada.Directories;
       package Labeled renames Alire.Properties.Labeled;
    begin
-      Trace.Debug ("Loading release " & This.Milestone.Image);
 
       --  Origin
 

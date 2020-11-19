@@ -32,7 +32,7 @@ package body Alire.Properties.From_TOML is
                end if;
 
                --  Extract property name from string
-               Trace.Debug ("Loading property key = " & Key);
+
                Process_Property : -- Single-pass loop to emulate Continue
                loop
                   if Is_Valid (Ada_Key) then
