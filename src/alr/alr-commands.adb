@@ -361,7 +361,7 @@ package body Alr.Commands is
            Alire.Directories.Detect_Root_Path;
       begin
          if Candidate_Folder /= "" then
-            Trace.Detail ("Using candidate alire root: " & Candidate_Folder);
+            Trace.Debug ("Using candidate alire root: " & Candidate_Folder);
             return new String'(Candidate_Folder);
          else
             Trace.Debug

@@ -304,7 +304,7 @@ package body Alire.Features.Index is
          return Sets.Empty_Set;
       end if;
 
-      Trace.Detail ("Found" & Set.Length'Img & " indexes");
+      Trace.Debug ("Found" & Set.Length'Img & " indexes");
 
       return Set;
    end Find_All;

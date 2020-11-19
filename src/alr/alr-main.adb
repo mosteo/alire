@@ -23,7 +23,7 @@ begin
 
    Alire.Root.Set_Platform_Properties (Alr.Platform.Properties);
 
-   Trace.Detail ("alr build is " & Bootstrap.Status_Line);
+   Trace.Debug ("alr build is " & Bootstrap.Status_Line);
 
    Commands.Execute;
 exception

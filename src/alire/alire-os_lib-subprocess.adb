@@ -185,7 +185,7 @@ package body Alire.OS_Lib.Subprocess is
 
       use TTY.ANSI;
    begin
-      Trace.Detail ("Spawning: " & Image (Command, Full_Args));
+      Trace.Debug ("Spawning: " & Image (Command, Full_Args));
 
       --  Prepare arguments
       for I in Arg_List'Range loop
@@ -274,7 +274,7 @@ package body Alire.OS_Lib.Subprocess is
    begin
       Create_Temp_Output_File (File, Name);
 
-      Trace.Detail ("Spawning: " & Image (Command, Full_Args) &
+      Trace.Debug ("Spawning: " & Image (Command, Full_Args) &
                       " > " & Name.all);
 
       --  Prepare arguments

@@ -208,7 +208,6 @@ package body Alire.TOML_Index is
                  Ada.Directories.Containing_Directory
                    (Repo_Version_Files.First_Element)
                do
-                  Trace.Detail ("Loading index found at " & Root);
                   Result := Outcome_Success;
                end return;
             when others =>
@@ -226,7 +225,7 @@ package body Alire.TOML_Index is
          return;
       end if;
 
-      Trace.Detail ("Loading full catalog from " & Root);
+      Trace.Debug ("Loading index from " & Root);
 
       Check_Index (Index, Root, Result);
 
