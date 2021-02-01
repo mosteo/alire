@@ -34,6 +34,9 @@ jobs:
     - name: alr first run to install msys2
       run: ./bin/alr --non-interactive help get
 
+    - name: Check pacman location
+      run: dir C:\Users\runneradmin\.cache\alire\msys64\usr\bin\pacman
+
     - name: install tar from msys2 (Git tar in Actions VM does not seem to work)
       run: C:\Users\runneradmin\.cache\alire\msys64\usr\bin\pacman --noconfirm -S tar
 
@@ -65,7 +68,7 @@ jobs:
     - name: Add msys2 /usr/bin to the path (for zip)
       run: echo 'C:\Users\runneradmin\.cache\alire\msys64\usr\bin' >> $GITHUB_PATH
       shell: bash
-      
+
     - name: Run installer build script
       run: bash make-alire-installer
       shell: bash
