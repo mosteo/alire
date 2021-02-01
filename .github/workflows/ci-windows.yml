@@ -35,7 +35,7 @@ jobs:
       run: ./bin/alr --non-interactive help get
 
     - name: Check pacman location
-      run: dir C:\Users\runneradmin\.cache\alire\msys64\usr\bin\pacman
+      run: dir C:\Users\runneradmin\.cache\alire\msys64\usr\bin
 
     - name: install tar from msys2 (Git tar in Actions VM does not seem to work)
       run: C:\Users\runneradmin\.cache\alire\msys64\usr\bin\pacman --noconfirm -S tar
