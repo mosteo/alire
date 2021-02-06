@@ -1,3 +1,4 @@
+with Ada.Calendar;
 with Ada.Directories;
 
 with Alire.Directories;
@@ -221,6 +222,9 @@ package body Alire.TOML_Index is
       Root : constant Any_Path := Locate_Root (Result);
       --  Locate a dir containing a 'index.toml' metadata file inside the repo.
       --  This is the directory containing the actual crates.
+
+      use Ada.Calendar;
+      Start : constant Time := Clock;
    begin
       if not Result.Success then
          return;
@@ -245,6 +249,10 @@ package body Alire.TOML_Index is
          when E : Checked_Error =>
             Result := Outcome_From_Exception (E);
       end;
+
+      Trace.Detail ("Index loaded in"
+                    & Duration'Image (Clock - Start)
+                    & " seconds.");
    end Load;
 
    -------------------
