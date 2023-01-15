@@ -1,0 +1,79 @@
+name: Nigthly
+# Create a nightly build from master and upload to the corresponding pre-release
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+
+env:
+
+jobs:
+
+  build:
+    name: ${{ matrix.os }}
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os:
+          - macos-10.15
+          - ubuntu-latest
+          - windows-latest
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: Install toolchain
+      uses: ada-actions/toolchain@ce2020
+      with:
+        distrib: community
+
+    - name: Install Python 3.x (required for the testsuite)
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Run test script
+      run: scripts/ci-github.sh
+      shell: bash
+
+    - name: Upload logs (if failed)
+      if: failure()
+      uses: actions/upload-artifact@master
+      with:
+        name: e3-log-linux.zip
+        path: testsuite/out
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: alr-bin-${{ matrix.os }}.zip
+        path: |
+          bin/alr*
+          LICENSE.txt
+
+    # Release steps start here
+
+    - name: Package binaries (Linux)
+      if: startsWith(matrix.os, 'ubuntu')
+      run: zip alr-nightly-bin-x86_64-linux.zip bin/alr* LICENSE.txt
+
+    - name: Package binaries (macOS)
+      if: startsWith(matrix.os, 'macos')
+      run: zip alr-nightly-bin-x86_64-macos.zip bin/alr* LICENSE.txt
+
+    - name: Package binaries (Windows)
+      if: startsWith(matrix.os, 'windows')
+      run: zip alr-nightly-bin-x86_64-windows.zip bin/alr* LICENSE.txt
+
+    - name: Upload to release
+      uses: pyTooling/Actions/releaser@r0
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        files: alr-nightly-*.zip
+        tag: nightly
+        rm: true
