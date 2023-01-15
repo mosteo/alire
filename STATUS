@@ -1,0 +1,2 @@
+This will be much simpler when we can get access to the default toolchain in a
+standard location (i.e. via `alr install`)

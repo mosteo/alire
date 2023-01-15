@@ -30,14 +30,28 @@ jobs:
       with:
         submodules: true
 
-    - name: Set up alr with default toolchain
-      uses: alire-project/setup-alire@v1
+    # Use a stock alr to make the latest toolchain available
+
+    - uses: alire-project/setup-alire@v2
+      with:
+        toolchain: --disable-assistant
+
+    - name: Install latest toolchain
+      shell: bash
+      run: |
+        alr install gprbuild gnat_native --prefix=tools
+
+    - name: Add toolchain to path
+      shell: bash
+      run: |
+        echo "$PWD/tools/bin" >> $GITHUB_PATH
 
     - name: Build alr with default toolchain
-      run: alr exec -- gprbuild -P alr_env.gpr
+      run: gprbuild -P alr_env.gpr
 
-    # The previous alr exec already updated, but that is not the alr we want to test, so redo the update
-    - name: Update dependencies
+    # We can start using the alr we just built
+
+    - name: Update dependencies 
       run: ./bin/alr -n update
 
     - name: Show dependencies/pins
@@ -49,10 +63,7 @@ jobs:
     - name: SELF-BUILD
       run: ./bin/alr -n build
 
-    # For some reason I cannot pinpoint, the Windows build is seeing two
-    # different environments that mess things up. The build succeeds though.
     - name: Show built version
-      if: matrix.os != 'windows-latest'
       run: ./bin/alr -n version
 
     # Run the testsuite with the just build alr. The testsuite picks the proper
