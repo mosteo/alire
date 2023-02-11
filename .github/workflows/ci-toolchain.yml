@@ -13,6 +13,7 @@ on:
 jobs:
 
   build:
+
     name: ${{ matrix.os }}
 
     runs-on: ${{ matrix.os }}
@@ -35,19 +36,26 @@ jobs:
     - uses: alire-project/setup-alire@v2
       with:
         toolchain: --disable-assistant
+        version: nightly
 
     - name: Install latest toolchain
-      shell: bash
       run: |
         alr install gprbuild gnat_native --prefix=tools
 
-    - name: Add toolchain to path
-      shell: bash
+    - name: Add toolchain to path (!Windows)
+      if: matrix.os != 'windows-latest'
       run: |
         echo "$PWD/tools/bin" >> $GITHUB_PATH
 
+    - name: Add toolchain to path (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        $Target = Join-Path (Get-Location) "\tools\bin"
+        Add-Content $env:GITHUB_PATH $Target
+
     - name: Build alr with default toolchain
-      run: gprbuild -P alr_env.gpr
+      shell: bash
+      run: dev/build.sh
 
     # We can start using the alr we just built
 
@@ -60,8 +68,12 @@ jobs:
     - name: Show build environment
       run: ./bin/alr -n printenv
 
+    - shell: bash
+      run: mv ./bin ./bin-old 
+      # Windows doesn't allow to replace a running exe so the next command fails
+
     - name: SELF-BUILD
-      run: ./bin/alr -n build
+      run: ./bin-old/alr -n build
 
     - name: Show built version
       run: ./bin/alr -n version
@@ -69,14 +81,13 @@ jobs:
     # Run the testsuite with the just build alr. The testsuite picks the proper
     # alr in the ./bin/alr location.
 
-    - name: Install Python 3.x (required for the testsuite)
+    - name: Install Python 3.x # required by testsuite
       uses: actions/setup-python@v2
       with:
         python-version: '3.x'
 
-    - name: Install e3 testsuite
+    - name: Install e3
       run: pip install --upgrade e3-testsuite
 
     - name: Run testsuite
       run: cd testsuite; ./run.py -E
-      shell: bash
