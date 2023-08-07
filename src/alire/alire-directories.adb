@@ -253,6 +253,28 @@ package body Alire.Directories is
             Adirs.Delete_Tree (Path);
          end if;
       end if;
+   exception
+      when E : others =>
+         Trace.Error ("Could not delete: " & Path);
+         Log_Exception (E, Error);
+         Trace.Error ("Contents follow: ");
+         declare
+            use AAA.Strings;
+            Output : Vector;
+            Code : constant Integer :=
+                     OS_Lib.Subprocess.Unchecked_Spawn_And_Capture
+                       ("ls", To_Vector ("-alRF"),
+                        Output,
+                        Err_To_Out => True);
+         begin
+            if Code = 0 then
+               Trace.Error (Output.Flatten (New_Line));
+            else
+               Trace.Error ("Contents listing failed with code: "
+                            & Code'Image);
+            end if;
+         end;
+         raise;
    end Force_Delete;
 
    ----------------------
