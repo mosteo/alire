@@ -254,7 +254,7 @@ package body Alire.Directories is
             Trace.Debug ("Deleting file " & Path & "...");
             Delete_File (Path);
          elsif Kind (Path) = Directory then
-            Trace.Debug ("Deleting temporary folder " & Path & "...");
+            Trace.Debug ("Deleting folder " & Path & "...");
 
             Ensure_Deletable (Path);
             Remove_Softlinks (Path, Recursive => True);
@@ -287,7 +287,7 @@ package body Alire.Directories is
                             & Code'Image);
             end if;
          end;
-         --  raise;
+         raise;
    end Force_Delete;
 
    ----------------------
@@ -791,18 +791,16 @@ package body Alire.Directories is
 
       Success : Boolean := False;
 
-      ---------------------
-      -- Remove_Internal --
-      ---------------------
+      Contents : File_Array_Access :=
+                   (if Recursive
+                    then Read_Dir_Recursive (Create (+Path))
+                    else Read_Dir (Create (+Path)));
 
-      procedure Remove_Internal (Target : Adirs.Directory_Entry_Type) is
-         use Ada.Directories;
-         VF    : constant VFS.Virtual_File :=
-                   VFS.New_Virtual_File
-                     (VFS.From_FS (Full_Name (Target)));
-      begin
+   begin
+      Trace.Debug ("Looking for softlinks in: " & Path);
+
+      for VF of Contents.all loop
          if VF.Is_Symbolic_Link then
-
             Trace.Debug ("Deleting softlink: " & VF.Display_Full_Name);
             VF.Delete (Success);
             --  Uses unlink under the hood so it should delete just the link
@@ -811,25 +809,10 @@ package body Alire.Directories is
                Raise_Checked_Error ("Failed to delete softlink: "
                                     & VF.Display_Full_Name);
             end if;
-         else
-            if Kind (Target) = Directory and then Recursive
-              and then Simple_Name (Target) not in "." | ".."
-            then
-               Search (Full_Name (Target),
-                       Pattern => "",
-                       Process => Remove_Internal'Access);
-            end if;
          end if;
-      end Remove_Internal;
+      end loop;
 
-   begin
-      --  GNATCOLL's read_dir returns softlinks as the target kind, so we are
-      --  forced to iterate using Ada.Directories but using GC to check for
-      --  softlinks.
-
-      Ada.Directories.Search (Path,
-                              Pattern => "",
-                              Process => Remove_Internal'Access);
+      Unchecked_Free (Contents);
    end Remove_Softlinks;
 
    -------------------
