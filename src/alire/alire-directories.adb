@@ -275,7 +275,8 @@ package body Alire.Directories is
                          ((if On_Windows then "dir" else "ls"),
                           (if On_Windows
                            then To_Vector ("/a/o/q/r/s")
-                           else To_Vector ("-alRF")),
+                           else To_Vector ("-alRF"))
+                          & Path,
                           Output,
                           Err_To_Out => True);
          begin
