@@ -286,7 +286,7 @@ package body Alire.Directories is
                             & Code'Image);
             end if;
          end;
-         raise;
+         --  raise;
    end Force_Delete;
 
    ----------------------
