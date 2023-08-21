@@ -268,12 +268,16 @@ package body Alire.Directories is
          Trace.Error ("Contents follow: ");
          declare
             use AAA.Strings;
+            use Platforms.Current;
             Output : Vector;
-            Code : constant Integer :=
-                     OS_Lib.Subprocess.Unchecked_Spawn_And_Capture
-                       ("ls", To_Vector ("-alRF"),
-                        Output,
-                        Err_To_Out => True);
+            Code   : constant Integer :=
+                       OS_Lib.Subprocess.Unchecked_Spawn_And_Capture
+                         ((if On_Windows then "dir" else "ls"),
+                          (if On_Windows
+                           then To_Vector ("/a") & "/s"
+                           else To_Vector ("-alRF")),
+                          Output,
+                          Err_To_Out => True);
          begin
             if Code = 0 then
                Trace.Error (Output.Flatten (New_Line));
