@@ -274,7 +274,7 @@ package body Alire.Directories is
                        OS_Lib.Subprocess.Unchecked_Spawn_And_Capture
                          ((if On_Windows then "dir" else "ls"),
                           (if On_Windows
-                           then To_Vector ("/a") & "/s"
+                           then To_Vector ("/a/o/q/r/s")
                            else To_Vector ("-alRF")),
                           Output,
                           Err_To_Out => True);
