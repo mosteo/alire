@@ -240,32 +240,62 @@ package body Alire.Directories is
 
    procedure Force_Delete (Path : Absolute_Path) is
       use Ada.Directories;
-   begin
+      use GNATCOLL.VFS;
 
-      --  Given that we never delete anything outside one of our folders, the
-      --  conservatively shortest thing we can be asked to delete is something
-      --  like "/c/alire". This is for peace of mind.
-      if Path'Length < 8 then
-         Recoverable_Error ("Suspicious deletion request for path: " & Path);
-      end if;
+      procedure Delete_Links is
+         procedure Delete_Links (Path : Absolute_Path) is
+            Contents : File_Array_Access :=
+                         VFS.New_Virtual_File (Path).Read_Dir;
+         begin
+            for Item of Contents.all loop
+               if Item.Is_Symbolic_Link then
+                  --  Delete it here and now before normalization, as after
+                  --  normalization links are resolved and the original link
+                  --  name is lost.
+                  declare
+                     Deleted : Boolean := False;
+                     Target  : constant Virtual_File :=
+                                 VFS.New_Virtual_File (+Item.Full_Name);
+                  begin
+                     Target.Normalize_Path (Resolve_Symlinks => True);
+                     Item.Delete (Deleted);
+                     if Deleted then
+                        Trace.Debug ("Deleted softlink: "
+                                     & Item.Display_Full_Name
+                                     & " --> "
+                                     & Target.Display_Full_Name);
+                     else
+                        --  Not deleting a link is unsafe, as it may point
+                        --  outside the target tree. Fail in this case.
+                        Raise_Checked_Error
+                          ("Failed to delete softlink: "
+                           & Item.Display_Full_Name);
+                     end if;
+                  end;
+               elsif Item.Is_Directory
+                 and then Item.Display_Base_Name not in "." | ".."
+               then
+                  Delete_Links (+Item.Full_Name);
+               end if;
+            end loop;
 
-      if Exists (Path) then
-         if Kind (Path) = Ordinary_File then
-            Trace.Debug ("Deleting file " & Path & "...");
-            Delete_File (Path);
-         elsif Kind (Path) = Directory then
-            Trace.Debug ("Deleting folder " & Path & "...");
+            Unchecked_Free (Contents);
+         end Delete_Links;
 
-            Ensure_Deletable (Path);
-            Remove_Softlinks (Path, Recursive => True);
-            Adirs.Delete_Tree (Path);
+      begin
+         if Adirs.Exists (Path) then
+            Delete_Links (Path);
          end if;
-      end if;
-   exception
-      when E : others =>
-         Trace.Error ("Could not delete: " & Path);
-         Log_Exception (E, Error);
-         Trace.Error ("Contents follow: ");
+      end Delete_Links;
+
+      ----------------------
+      -- Report_Remaining --
+      ----------------------
+
+      procedure Report_Remaining is
+      begin
+         Trace.Warning ("Could not completely remove " & Path);
+         Trace.Debug ("Remains follow: ");
          declare
             use AAA.Strings;
             use Platforms.Current;
@@ -281,12 +311,46 @@ package body Alire.Directories is
                           Err_To_Out => True);
          begin
             if Code = 0 then
-               Trace.Error (Output.Flatten (New_Line));
+               Trace.Debug (Output.Flatten (New_Line));
             else
-               Trace.Error ("Contents listing failed with code: "
-                            & Code'Image);
+               Trace.Warning ("Contents listing failed with code: "
+                              & Code'Image);
             end if;
          end;
+      end Report_Remaining;
+
+   begin
+
+      --  Given that we never delete anything outside one of our folders, the
+      --  conservatively shortest thing we can be asked to delete is something
+      --  like "/c/alire". This is for peace of mind.
+
+      if Path'Length < 8 then
+         Recoverable_Error ("Suspicious deletion request for path: " & Path);
+      end if;
+
+      if Exists (Path) then
+         if Kind (Path) = Ordinary_File then
+            Trace.Debug ("Deleting file " & Path & "...");
+            Delete_File (Path);
+         elsif Kind (Path) = Directory then
+            Trace.Debug ("Deleting folder " & Path & "...");
+            Ensure_Deletable (Path);
+            Delete_Links;
+            --  By first deleting any softlinks, we ensure that the remaining
+            --  tree is safe to delete, that no malicious link is followed
+            --  outside the target tree, and that broken/recursive links
+            --  confuse the tree removal procedure.
+            Adirs.Delete_Tree (Path);
+         else
+            Raise_Checked_Error ("Cannot delete special file:" & Path);
+         end if;
+      end if;
+   exception
+      when E : others =>
+         Trace.Debug ("Exception attempting deletion of " & Path);
+         Log_Exception (E);
+         Report_Remaining;
          raise;
    end Force_Delete;
 
@@ -779,41 +843,6 @@ package body Alire.Directories is
                      Doing   => Merge'Access,
                      Recurse => True);
    end Merge_Contents;
-
-   ------------------------------
-   -- Remove_Softlinks_In_Tree --
-   ------------------------------
-
-   procedure Remove_Softlinks (Path      : Any_Path;
-                                       Recursive : Boolean)
-   is
-      use GNATCOLL.VFS;
-
-      Success : Boolean := False;
-
-      Contents : File_Array_Access :=
-                   (if Recursive
-                    then Read_Dir_Recursive (Create (+Path))
-                    else Read_Dir (Create (+Path)));
-
-   begin
-      Trace.Debug ("Looking for softlinks in: " & Path);
-
-      for VF of Contents.all loop
-         if VF.Is_Symbolic_Link then
-            Trace.Debug ("Deleting softlink: " & VF.Display_Full_Name);
-            VF.Delete (Success);
-            --  Uses unlink under the hood so it should delete just the link
-
-            if not Success then
-               Raise_Checked_Error ("Failed to delete softlink: "
-                                    & VF.Display_Full_Name);
-            end if;
-         end if;
-      end loop;
-
-      Unchecked_Free (Contents);
-   end Remove_Softlinks;
 
    -------------------
    -- Traverse_Tree --
