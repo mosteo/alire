@@ -32,6 +32,7 @@ jobs:
     - name: Install FSF toolchain
       uses: alire-project/alr-install@v1
       with:
+        cache: false
         crates: gnat_native gprbuild
 
     - name: Install Python 3.x (required for the testsuite)
