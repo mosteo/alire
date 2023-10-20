@@ -16,6 +16,8 @@ with Semantic_Versioning.Extended;
 
 package Alire.Index is
 
+   --  1.3: adds the optional "literal" for environment variables
+
    Community_Host : constant String := Config.Builtins.Index_Host.Get;
 
    Community_Organization : constant String := Config.Builtins.Index_Owner.Get;

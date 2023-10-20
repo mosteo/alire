@@ -71,6 +71,27 @@ package body Alire.Properties.Environment is
       use type Conditional.Properties;
       use TOML;
       Env : TOML_Value;
+
+      ----------------
+      -- path_check --
+      ----------------
+
+      function Path_Check (S : String) return String is
+      begin
+         --  We expect something resembling a portable path
+         if (for some Char of S => Char = '\') then
+            Raise_Checked_Error
+              ("Forbidden '\' character in environment path; use '/' instead");
+         end if;
+
+         if GNAT.OS_Lib.Directory_Separator /= '/' then
+            return AAA.Strings.Replace (S, "/",
+                                        "" & GNAT.OS_Lib.Directory_Separator);
+         else
+            return S;
+         end if;
+      end Path_Check;
+
    begin
       if From.Unwrap.Kind /= TOML_Table then
          From.Checked_Error
@@ -87,7 +108,10 @@ package body Alire.Properties.Environment is
          for Name of Env.Keys loop
             declare
                Var  : Variable;   -- The env. var. being parsed
-               Val  : TOML_Value; -- The env. var. value
+               Val  : TOML_Value; -- The env. var. action. value
+                                  --  Which can be in turn the string value or
+                                  --  a nested table with "literal.value"
+               Literal : Boolean := False;
             begin
                Var.Name := Name;
 
@@ -98,7 +122,7 @@ package body Alire.Properties.Environment is
                                    From.Descend
                                      (Value   => Env.Get (Name),
                                       Context => "environment: " & (+Name))
-                                     .Pop_Single_Table (Val, TOML_String);
+                                     .Pop_Single_Table (Val);
                begin
                   Var.Action := Actions'Value (Action_Image);
                exception
@@ -109,9 +133,35 @@ package body Alire.Properties.Environment is
                           Actions_Suggestion (Action_Image));
                end;
 
-               --  Value (already type checked in previous pop)
+               --  Either VAR.action.value or VAR.action.literal.value
+               Literal := Val.Kind in TOML.TOML_Table;
 
-               Var.Value := +Val.As_String;
+               if Literal then
+                  if Val.Keys'Length /= 1 or else +Val.Keys (1) /= "literal"
+                  then
+                     Raise_Checked_Error
+                       ("Only a single child with value 'literal' allowed "
+                        & "after environment.VAR.action");
+                  end if;
+
+                  Val := Val.Get ("literal");
+               end if;
+
+               --  We consider values as possibly containing paths, so we do
+               --  translation to native at this time, unless "literal" was
+               --  specified.
+
+               if Val.Kind not in TOML.TOML_String then
+                  Raise_Checked_Error
+                    ("Expected a single entry of type STRING, but got a "
+                     & Val.Kind'Img);
+               end if;
+
+               if Literal then
+                  Var.Value := +Val.As_String;
+               else
+                  Var.Value := +Path_Check (Val.As_String);
+               end if;
 
                --  Pop entry to avoid upper "unexpected key" errors
 
