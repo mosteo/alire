@@ -1,3 +1,4 @@
+with Alire.Experimental;
 with Alire.TOML_Keys;
 with Alire.Utils.Did_You_Mean;
 
@@ -137,6 +138,9 @@ package body Alire.Properties.Environment is
                Literal := Val.Kind in TOML.TOML_Table;
 
                if Literal then
+                  Experimental.Check (Experimental.Literal_Environment,
+                                      Experimental.Minor);
+
                   if Val.Keys'Length /= 1 or else +Val.Keys (1) /= "literal"
                   then
                      Raise_Checked_Error

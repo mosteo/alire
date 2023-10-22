@@ -6,11 +6,11 @@ with Ada.Environment_Variables;
 with CLIC.TTY;
 with CLIC.User_Input;
 
-with Alire.Platforms;
 with Alire_Early_Elaboration;
 with Alire.Config.Builtins;
 with Alire.Config.Edit;
 with Alire.Errors;
+with Alire.Experimental;
 with Alire.Index_On_Disk.Loading;
 with Alire.Index_On_Disk.Updates;
 with Alire.Lockfiles;
@@ -197,6 +197,11 @@ package body Alr.Commands is
                      Long_Switch => "--debug?",
                      Help =>
                        "Enable debug-specific log messages");
+
+      Define_Switch (Config,
+                     Alire.Experimental.Enabled'Access,
+                     "-x",
+                     Help => "Enable experimental features");
    end Set_Global_Switches;
 
    --------------------------
