@@ -43,6 +43,8 @@ package Alire.Cache is
 
    subtype Usages is Item_Sets.Set;
 
+   function Children (This : Base_Item'Class) return Usages;
+
    function Usage return Usages;
    --  Compute cache usage. First level is locations, second level is releases,
    --  third level is builds. Within level, childen are sorted by size.
@@ -61,6 +63,13 @@ package Alire.Cache is
 private
 
    use type Sizes;
+
+   --------------
+   -- Children --
+   --------------
+
+   function Children (This : Base_Item'Class) return Usages
+   is (This.Element.Children);
 
    -----------
    -- Depth --

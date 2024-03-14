@@ -1,7 +1,11 @@
 with Alire.Cache;
+with Alire.Paths;
 with Alire.Utils.Tables;
 
 package body Alr.Commands.Cache is
+
+   Builds_Dir : constant String :=
+                  Alire.Paths.Build_Folder_Inside_Working_Folder;
 
    ----------
    -- List --
@@ -35,9 +39,9 @@ package body Alr.Commands.Cache is
          Table
            .Append (Alire.Directories.TTY_Image (Item.Size))
            .Append (if Depth = Location
-                    then Trim (Item.Element.Children.Length'Image)
-                    elsif Depth = Release and then Loc = "builds"
-                    then Trim (Item.Element.Children.Length'Image)
+                    then Trim (Item.Children.Length'Image)
+                    elsif Depth = Release and then Loc = Builds_Dir
+                    then Trim (Item.Children.Length'Image)
                     else "")
            .Append (Graph (1 ..
                       Integer'Max -- Ensure at least 1
@@ -71,21 +75,38 @@ package body Alr.Commands.Cache is
       Table.New_Row;
 
       for Location_Item of Usage loop
+
+         --  We don't want to show the single clone of the publishing
+         --  index, as it's small and it doesn't really fit the structure
+         --  of location->release->build.
+
+         if Location_Item.Name = "publish" then
+            goto Continue;
+         end if;
+
          Append (Location,
                  Location_Item.Name,
                  "",
                  Location_Item);
 
          if Max_Depth >= Release then
-            for Release_Item of Location_Item.Element.Children loop
-               Append (Release,
-                       Location_Item.Name,
-                       Release_Item.Name,
-                       Release_Item);
+            for Release_Item of Location_Item.Children loop
 
-               if Max_Depth >= Build and then Location_Item.Name = "builds"
+               --  Small optimization; when a release only has a one build,
+               --  conflate both in the same line.
+               if Release_Item.Children.Length not in 1
+                 or else Location_Item.Name /= Builds_Dir
                then
-                  for Build_Item of Release_Item.Element.Children loop
+                  Append (Release,
+                          Location_Item.Name,
+                          Release_Item.Name,
+                          Release_Item);
+               end if;
+
+               if Max_Depth >= Build
+                 and then Location_Item.Name = Builds_Dir
+               then
+                  for Build_Item of Release_Item.Children loop
                      Append (Build,
                              Location_Item.Name,
                              Release_Item.Name,
@@ -94,6 +115,8 @@ package body Alr.Commands.Cache is
                end if;
             end loop;
          end if;
+
+         <<Continue>>
       end loop;
 
       Table.Print (Trace.Always);

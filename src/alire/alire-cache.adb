@@ -1,3 +1,5 @@
+with Ada.Calendar;
+
 with Alire.Directories;
 with Alire.Paths;
 with Alire.Platforms.Folders;
@@ -31,7 +33,31 @@ package body Alire.Cache is
 
    function Usage return Usages is
 
-      Tree  : constant Du.Tree := Du.List (Path);
+      Busy_Top : Simple_Logging.Ongoing :=
+                   Simple_Logging.Activity ("Listing");
+
+      Busy : Simple_Logging.Ongoing := Simple_Logging.Activity ("");
+
+      Last_Check : Ada.Calendar.Time := Ada.Calendar.Clock;
+
+      --------------
+      -- Progress --
+      --------------
+
+      procedure Progress (Path : String) is
+         use Ada.Calendar;
+      begin
+         if Clock - Last_Check >= 0.1
+           and then Directories.Is_File (Path / Alire.Paths.Crate_File_Name)
+         then
+            Busy_Top.Step;
+            Busy.Step (Adirs.Simple_Name (Path));
+            Last_Check := Clock;
+         end if;
+      end Progress;
+
+      Tree  : constant Du.Tree := Du.List (Path,
+                                           Progress => Progress'Access);
 
       ----------------
       -- Usage_Wrap --
@@ -57,7 +83,8 @@ package body Alire.Cache is
                --  Wrap the children if we still have room to go down
 
                if Depth < Release or else
-                 (Depth < Build and then Branch = "builds")
+                 (Depth < Build
+                  and then Branch = Paths.Build_Folder_Inside_Working_Folder)
                then
                   Usage_Wrap (Wrapped_Children,
                               Child.Element.Children,
