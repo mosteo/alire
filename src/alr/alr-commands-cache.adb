@@ -1,4 +1,5 @@
 with Alire.Cache;
+with Alire.Directories;
 with Alire.Paths;
 with Alire.Utils.Tables;
 
@@ -123,6 +124,26 @@ package body Alr.Commands.Cache is
    end List;
 
    -------------
+   -- Summary --
+   -------------
+
+   procedure Summary is
+      use Alire.Directories;
+      Table : Alire.Utils.Tables.Table;
+   begin
+      Table
+        .Append ("Path:")
+        .Append (Alire.Cache.Path)
+        .New_Row;
+
+      Table
+        .Append ("Size:")
+        .Append (TTY_Image (Alire.Cache.Usage.First_Element.Size));
+
+      Table.Print (Trace.Always);
+   end Summary;
+
+   -------------
    -- Execute --
    -------------
 
@@ -131,7 +152,11 @@ package body Alr.Commands.Cache is
                       Args :        AAA.Strings.Vector)
    is
    begin
-      List;
+      if True then
+         Summary;
+      else
+         List;
+      end if;
    end Execute;
 
 end Alr.Commands.Cache;
