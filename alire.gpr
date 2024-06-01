@@ -4,6 +4,7 @@ with "alire_common";
 with "ajunitgen";
 with "ansiada";
 with "clic";
+with "compare_to_case";
 with "dirty_booleans";
 with "diskflags";
 with "gnatcoll";

@@ -60,3 +60,6 @@
 [submodule "deps/dirty_booleans"]
 	path = deps/dirty_booleans
 	url = https://github.com/mosteo/dirty_booleans
+[submodule "deps/compare_to_case"]
+	path = deps/compare_to_case
+	url = https://github.com/mosteo/compare_to_case
