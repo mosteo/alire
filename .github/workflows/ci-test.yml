@@ -1,0 +1,59 @@
+name: CI Test
+
+on:
+  pull_request:
+    paths-ignore:
+      - 'doc/**'
+      - '**.md'
+      - '**.rst'
+      - '**.txt'
+  release:
+    types: [published]
+  workflow_dispatch:
+
+env:
+  ALIRE_OS:     windows
+  MSYS64_ROOT:  C:\Users\runneradmin\AppData\Local\alire\cache\msys64
+  MINGW64_PATH: C:\Users\runneradmin\AppData\Local\alire\cache\msys64\mingw64\bin
+  MSYS2_PATH:   C:\Users\runneradmin\AppData\Local\alire\cache\msys64\usr\bin
+  PACMAN:       C:\Users\runneradmin\AppData\Local\alire\cache\msys64\usr\bin\pacman --noconfirm
+
+jobs:
+
+  build:
+    name: CI Test
+
+    runs-on: windows-latest
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: Install FSF toolchain
+      uses: alire-project/alr-install@v1
+      with:
+        crates: gnat_native gprbuild
+
+    - name: Build alr
+      run: gprbuild -j0 -p -P alr_env
+
+    - name: Remove previous alr's msys2 (so a new one can be tested)
+      shell: pwsh
+      run: |
+        if (Test-Path "${{env.MSYS64_ROOT}}") {
+          Remove-Item "${{env.MSYS64_ROOT}}" -Recurse -Force }
+
+    - name: Display built alr and trigger install of msys2
+      run: ./bin/alr version
+
+    - name: Display built alr (BASH)
+      run: ./bin/alr version
+      shell: bash
+
+    - name: Display built alr (PATH)
+      shell: bash
+      run: |
+        export PATH=$PATH:$PWD/bin
+        alr version
