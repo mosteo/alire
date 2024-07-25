@@ -44,7 +44,7 @@
 	url = https://github.com/mosteo/toml_slicer
 [submodule "deps/si_units"]
 	path = deps/si_units
-	url = https://github.com/HeisenbugLtd/si_units.git
+	url = https://github.com/mosteo/si_units.git
 [submodule "deps/stopwatch"]
 	path = deps/stopwatch
 	url = https://github.com/mosteo/stopwatch
@@ -60,3 +60,12 @@
 [submodule "deps/dirty_booleans"]
 	path = deps/dirty_booleans
 	url = https://github.com/mosteo/dirty_booleans
+[submodule "deps/den"]
+	path = deps/den
+	url = https://github.com/mosteo/den
+[submodule "deps/cstrings"]
+	path = deps/cstrings
+	url = https://github.com/mosteo/cstrings
+[submodule "deps/c_strings"]
+	path = deps/c_strings
+	url = https://github.com/mosteo/cstrings
