@@ -35,7 +35,7 @@ jobs:
     - name: Install FSF toolchain
       uses: alire-project/alr-install@v1
       with:
-        crates: gnat_native gprbuild
+        crates: gnat_native^13 gprbuild
 
     - name: Build alr
       run: gprbuild -j0 -p -P alr_env
