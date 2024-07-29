@@ -58,7 +58,7 @@ package body Alire.TOML_Index is
    --  describes a supported index, and that the file tree follows the proper
    --  naming conventions, without extraneous files being present.
 
-   procedure Load_Manifest (Item   : Any_Path;
+   procedure Load_Manifest (Item   : Ada.Directories.Directory_Entry_Type;
                             Stop   : in out Boolean);
    --  Check if entry is a candidate to manifest file, and in that case load
    --  its contents. May raise Checked_Error.
@@ -273,8 +273,7 @@ package body Alire.TOML_Index is
             end return;
          when others =>
             Result :=
-              Outcome_Failure ("Several index.toml files found in index: "
-                               & Repo_Version_Files.Flatten (";"));
+              Outcome_Failure ("Several index.toml files found in index");
             return "";
       end case;
    end Locate_Root;
@@ -358,7 +357,7 @@ package body Alire.TOML_Index is
    -- Load_Manifest --
    -------------------
 
-   procedure Load_Manifest (Item   : Any_Path;
+   procedure Load_Manifest (Item   : Ada.Directories.Directory_Entry_Type;
                             Stop   : in out Boolean)
    is
       pragma Unreferenced (Stop);

@@ -395,7 +395,7 @@ package body Alire.Install is
       Result : Installed_Milestones;
 
       procedure Find
-        (Item : Any_Path;
+        (Item : Ada.Directories.Directory_Entry_Type;
          Stop : in out Boolean)
       is
          Name : constant String := Adirs.Simple_Name (Item);

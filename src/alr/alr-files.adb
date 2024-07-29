@@ -1,4 +1,4 @@
-with Den;
+with Ada.Directories;
 
 package body Alr.Files is
 
@@ -7,27 +7,19 @@ package body Alr.Files is
    -------------------------
 
    function Locate_Any_GPR_File return Natural is
+      use Ada.Directories;
 
       Candidates : AAA.Strings.Vector;
 
-      -----------
-      -- Check --
-      -----------
-
-      procedure Check (File : Alire.Any_Path; Stop : in out Boolean) is
-         use AAA.Strings;
+      procedure Check (File : Directory_Entry_Type) is
       begin
-         Stop := False;
-         if Den.Kind (File) in Den.File
-           and then Has_Suffix (To_Lower_Case (File), ".gpr")
-         then
-            Candidates.Append (Den.Full (File));
-         end if;
+         Candidates.Append (Full_Name (File));
       end Check;
    begin
-      Alire.Directories.Traverse_Tree
-        (Alire.Directories.Current,
-         Check'Access);
+      Search (Current_Directory,
+              "*.gpr",
+              (Ordinary_File => True, others => False),
+              Check'Access);
 
       return Natural (Candidates.Length);
    end Locate_Any_GPR_File;

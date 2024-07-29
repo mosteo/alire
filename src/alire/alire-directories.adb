@@ -13,8 +13,6 @@ with Alire.Platforms.Folders;
 with Alire.VFS;
 with Alire.Utils;
 
-with Den.Walk;
-
 with GNAT.String_Hash;
 
 with GNATCOLL.VFS;
@@ -394,35 +392,51 @@ package body Alire.Directories is
                               Max_Depth : Natural := Natural'Last)
                               return AAA.Strings.Vector
    is
-      use all type Den.Kinds;
       Found : AAA.Strings.Vector;
 
-      -----------
-      -- Check --
-      -----------
-
-      procedure Check (Item  : Den.Walk.Item;
-                       Enter : in out Boolean;
-                       Stop  : in out Boolean)
+      procedure Locate (Folder        : String;
+                        Current_Depth : Natural;
+                        Max_Depth     : Natural)
       is
+         use Ada.Directories;
+         Search : Search_Type;
       begin
-         Stop := False;
+         Start_Search (Search, Folder, "",
+                       Filter => (Ordinary_File => True,
+                                  Directory     => True,
+                                  others        => False));
 
-         if Max_Depth < Natural'Last and then Item.Depth > Max_Depth then
-            Enter := False;
-         end if;
+         while More_Entries (Search) loop
+            declare
+               Current : Directory_Entry_Type;
+            begin
+               Get_Next_Entry (Search, Current);
+               if Kind (Current) = Directory then
+                  if Simple_Name (Current) /= "."
+                    and then
+                     Simple_Name (Current) /= ".."
+                    and then
+                     Current_Depth < Max_Depth
+                  then
+                     Locate (Folder / Simple_Name (Current),
+                             Current_Depth + 1,
+                             Max_Depth);
+                  end if;
+               elsif Kind (Current) = Ordinary_File
+                 and then Simple_Name (Current) = Simple_Name (Name)
+               then
+                  Found.Append (Folder / Name);
+               end if;
+            end;
+         end loop;
 
-         if Den.Kind (Item.Path) = File
-           and then Den.Name (Item.Path) = Den.Name (Name)
-         then
-            Found.Append (Item.Path);
-         end if;
-      end Check;
+         End_Search (Search);
+      end Locate;
 
+      use Ada.Directories;
    begin
-      if Den.Exists (Folder) and then Den.Kind (Folder) = Den.Directory then
-         Den.Walk.Find (Folder,
-                        Check'Access);
+      if Exists (Folder) and then Kind (Folder) = Directory then
+         Locate (Folder, 0, Max_Depth);
       end if;
 
       return Found;
@@ -437,9 +451,7 @@ package body Alire.Directories is
                                 return Any_Path
    is
    begin
-      return AAA.Directories.Relative_Path
-        (Den.Absnormal (Den.Scrub (Parent)),
-         Den.Absnormal (Den.Scrub (Child)));
+      return AAA.Directories.Relative_Path (Parent, Child);
    end Find_Relative_Path;
 
    ----------------------
@@ -808,32 +820,33 @@ package body Alire.Directories is
                              Remove_From_Source    : Boolean)
    is
 
-      Base   : constant Absolute_Path := Den.Absolute (Src);
-      Target : constant Absolute_Path := Den.Absolute (Dst);
+      Base   : constant Absolute_Path := Adirs.Full_Name (Src);
+      Target : constant Absolute_Path := Adirs.Full_Name (Dst);
 
       -----------
       -- Merge --
       -----------
 
       procedure Merge
-        (Item : Any_Path;
+        (Item : Ada.Directories.Directory_Entry_Type;
          Stop : in out Boolean)
       is
-         use all type Den.Kinds;
-         Src : constant Absolute_Path := Den.Absolute (Item);
+         use all type Adirs.File_Kind;
+
          Rel_Path : constant Relative_Path :=
-                      Find_Relative_Path (Base, Src);
+                      Find_Relative_Path (Base, Adirs.Full_Name (Item));
          --  If this proves to be too slow, we should do our own recursion,
          --  building the relative path along the way, as this is recomputing
          --  it for every file needlessly.
 
          Dst : constant Absolute_Path := Target / Rel_Path;
+         Src : constant Absolute_Path := Adirs.Full_Name (Item);
       begin
          Stop := False;
 
          --  Check if we must skip (we delete source file)
 
-         if Den.Kind (Item) /= Directory
+         if Adirs.Kind (Item) = Ordinary_File
            and then Skip_Top_Level_Files
            and then Base = Parent (Src)
          then
@@ -843,7 +856,7 @@ package body Alire.Directories is
 
          --  Create a new dir if necessary
 
-         if Den.Kind (Item) = Directory then
+         if Adirs.Kind (Item) = Directory then
             if not Is_Directory (Dst) then
                Trace.Debug ("   Merge: Creating destination dir " & Dst);
                Create_Tree (Dst);
@@ -857,15 +870,15 @@ package body Alire.Directories is
          --  Copy file into place
 
          Trace.Debug ("   Merge: copying "
-                     & Den.Absolute (Item)
+                     & Adirs.Full_Name (Item)
                      & " into " & Dst);
 
-         if Den.Exists (Dst) then
+         if Adirs.Exists (Dst) then
             if Fail_On_Existing_File then
                Recoverable_User_Error ("Cannot copy " & TTY.URL (Src)
                                   & " into place, file already exists: "
                                   & TTY.URL (Dst));
-            elsif Den.Kind (Dst) /= File then
+            elsif Adirs.Kind (Dst) /= Ordinary_File then
                Raise_Checked_Error ("Cannot overwrite " & TTY.URL (Dst)
                                     & " as it is not a regular file");
             else
@@ -899,11 +912,7 @@ package body Alire.Directories is
             exception
                when E : others =>
                   Trace.Error
-                    ("When copying " & Src & " (" & Den.Kind (Src)'Image
-                     & ") --> " & Dst & ": ");
-                  Trace.Error
-                    ("Src item was: "
-                     & Item & " (" & Den.Kind (Item)'Image & ")");
+                    ("When copying " & Src & " --> " & Dst & ": ");
                   Log_Exception (E, Error);
                   raise;
             end;
@@ -932,12 +941,16 @@ package body Alire.Directories is
 
    procedure Traverse_Tree (Start   : Any_Path;
                             Doing   : access procedure
-                              (Item : Any_Path;
+                              (Item : Ada.Directories.Directory_Entry_Type;
                                Stop : in out Boolean);
                             Recurse : Boolean := False;
                             Spinner : Boolean := False)
    is
       use Ada.Directories;
+
+      Visited : AAA.Strings.Set;
+      --  To avoid infinite recursion in case of softlinks pointed to parent
+      --  folders
 
       Progress : Simple_Logging.Ongoing :=
                    Simple_Logging.Activity (Text  => "Exploring " & Start,
@@ -945,47 +958,95 @@ package body Alire.Directories is
                                                       then Info
                                                       else Debug));
 
+      procedure Go_Down (Item : Directory_Entry_Type);
+
+      ----------------------------
+      -- Traverse_Tree_Internal --
+      ----------------------------
+
+      procedure Traverse_Tree_Internal
+        (Start   : Any_Path;
+         Doing   : access procedure
+           (Item : Ada.Directories.Directory_Entry_Type;
+            Stop : in out Boolean);
+         Recurse : Boolean := False)
+      is
+         pragma Unreferenced (Doing, Recurse);
+      begin
+         Search (Start,
+                 "",
+                 (Directory => True, Ordinary_File => True, others => False),
+                 Go_Down'Access);
+      end Traverse_Tree_Internal;
+
       -------------
       -- Go_Down --
       -------------
 
-      procedure Go_Down (This  : Den.Walk.Item;
-                         Enter : in out Boolean;
-                         Stop  : in out Boolean)
-      is
-         use all type Den.Kinds;
-         Path : constant Any_Path := This.Path;
+      procedure Go_Down (Item : Directory_Entry_Type) is
+         Stop  : Boolean := False;
+         Prune : Boolean := False;
+         VF    : constant VFS.Virtual_File :=
+                   VFS.New_Virtual_File (VFS.From_FS (Full_Name (Item)));
+         --  We use this later to check whether this is a soft link
       begin
-         Enter := True;
-         Stop  := False;
 
-         begin
-            Doing (This.Path, Stop);
-         exception
-            when Traverse_Tree_Prune_Dir =>
-               Enter := False;
-         end;
-         if Stop then
+         --  Ada.Directories reports softlinks not as special files but as the
+         --  target of the link. This confuses users of Traverse_Tree that may
+         --  see files within a folder that has never been visited before.
+
+         --  Short of introducing new file kinds for softlinks and reporting
+         --  them to clients, for now we just ignore softlinks to dirs, and
+         --  this way only actual folders are traversed.
+
+         if VF.Is_Symbolic_Link and then Kind (Item) = Directory then
+            Trace.Warning ("Skipping softlink dir during tree traversal: "
+                           & Full_Name (Item));
             return;
          end if;
 
-         if Enter and then Recurse and then Den.Kind (Path) = Directory then
-            if Spinner then
-               Progress.Step ("Exploring .../" & Simple_Name (Path));
+         if Simple_Name (Item) /= "." and then Simple_Name (Item) /= ".." then
+            begin
+               Doing (Item, Stop);
+            exception
+               when Traverse_Tree_Prune_Dir =>
+                  Prune := True;
+            end;
+            if Stop then
+               return;
             end if;
-         elsif not Enter and then Den.Kind (Path) = Directory then
-            Trace.Debug ("Skipping dir: " & Full_Name (Path));
-         elsif not Enter and then Den.Kind (Path) /= Directory then
-            Trace.Warning ("Pruning of non-dir entry has no effect: "
-                           & Full_Name (Path));
+
+            if not Prune and then Recurse and then Kind (Item) = Directory then
+               declare
+                  Normal_Name : constant Absolute_Path
+                    :=
+                      String (GNATCOLL.VFS.Full_Name
+                              (VFS.New_Virtual_File (Full_Name (Item)),
+                                   Normalize        => True,
+                                   Resolve_Links    => True).all);
+               begin
+                  if Visited.Contains (Normal_Name) then
+                     Trace.Debug ("Not revisiting " & Normal_Name);
+                  else
+                     Visited.Insert (Normal_Name);
+                     if Spinner then
+                        Progress.Step ("Exploring .../" & Simple_Name (Item));
+                     end if;
+                     Traverse_Tree_Internal (Normal_Name, Doing, Recurse);
+                  end if;
+               end;
+            elsif Prune and then Kind (Item) = Directory then
+               Trace.Debug ("Skipping dir: " & Full_Name (Item));
+            elsif Prune and then Kind (Item) /= Directory then
+               Trace.Warning ("Pruning of non-dir entry has no effect: "
+                              & Full_Name (Item));
+            end if;
          end if;
       end Go_Down;
 
    begin
       Trace.Debug ("Traversing folder: " & Adirs.Full_Name (Start));
-      Den.Walk.Find (Start,
-                     Action => Go_Down'Access,
-                     Options => (Enter_Regular_Dirs => Recurse, others => <>));
+      Traverse_Tree_Internal (Start, Doing, Recurse);
    end Traverse_Tree;
 
    ---------------
@@ -1001,7 +1062,7 @@ package body Alire.Directories is
       -- Accumulate --
       ----------------
 
-      procedure Accumulate (Item : Any_Path;
+      procedure Accumulate (Item : Directory_Entry_Type;
                             Stop : in out Boolean)
       is
       begin

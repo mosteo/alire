@@ -42,7 +42,7 @@ package body Alr.Commands.Clean is
       -- Add_Target --
       ----------------
 
-      procedure Add_Target (Item        : Alire.Any_Path;
+      procedure Add_Target (Item        : Ada.Directories.Directory_Entry_Type;
                             Unused_Stop : in out Boolean)
       is
          use Ada.Directories;
