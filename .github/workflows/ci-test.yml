@@ -27,9 +27,10 @@ jobs:
 
     steps:
     - name: Check out repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         submodules: true
+        fetch-depth: 0
 
     - name: Install FSF toolchain
       uses: alire-project/alr-install@v1
@@ -57,3 +58,30 @@ jobs:
       run: |
         export PATH=$PATH:$PWD/bin
         alr version
+
+    - name: Rename in preparation to upload artifact
+      shell: bash
+      run: |
+        mv bin/alr.exe bin/alr-ok.exe
+
+    - name: Checkout problematic commit and rebuild
+      run: |
+        git checkout 0ee09278
+        gprbuild -j0 -p -P alr_env
+
+    - name: Verify failure, rename, etc
+      shell: bash
+      run: |
+        export PATH=$PATH:$PWD/bin
+        alr version && echo ÉXITO TOTAL || \
+        {
+          echo "ERROR: alr version failed"
+          mv bin/alr.exe bin/alr-fail.exe
+          ls -alF bin
+        }
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: alr
+        path: bin
