@@ -66,6 +66,3 @@
 [submodule "deps/cstrings"]
 	path = deps/cstrings
 	url = https://github.com/mosteo/cstrings
-[submodule "deps/c_strings"]
-	path = deps/c_strings
-	url = https://github.com/mosteo/cstrings
