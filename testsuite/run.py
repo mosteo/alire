@@ -42,9 +42,10 @@ class Testsuite(e3.testsuite.Testsuite):
         if path is None:
             raise FileNotFoundError(f"{name} not found in PATH")
         else:
-            print(f"Testsuite using {name} at {path} with version:")
+            print(f"Testsuite using {name} at {path} with version:", )
             print(subprocess.run([name, '--version'],
                                  stdout=subprocess.PIPE).stdout.decode())
+            sys.stdout.flush()
 
     def set_up(self):
         super().set_up()
