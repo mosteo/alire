@@ -437,9 +437,9 @@ package body Alire.Directories is
                                 return Any_Path
    is
    begin
-      return AAA.Directories.Relative_Path
+      return Den.Normal (AAA.Directories.Relative_Path
         (Den.Absnormal (Den.Scrub (Parent)),
-         Den.Absnormal (Den.Scrub (Child)));
+         Den.Absnormal (Den.Scrub (Child))));
    end Find_Relative_Path;
 
    ----------------------
