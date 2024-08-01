@@ -42,7 +42,7 @@ jobs:
     - name: Install FSF toolchain
       uses: alire-project/alr-install@v1
       with:
-        crates: gnat_native^${{matrix.gcc_version}} 'gprbuild<24'
+        crates: gnat_native^${{matrix.gcc_version}} gprbuild
 
     - name: Build alr with toolchain from `alr install`
       shell: bash
