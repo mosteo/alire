@@ -21,7 +21,7 @@ with Alire.Utils.TTY;
 with Alire.Utils.User_Input;
 with Alire.VFS;
 
-with Den;
+with Den.Filesystem;
 
 with GNAT.OS_Lib;
 with GNAT.SHA256;
@@ -1253,13 +1253,13 @@ package body Alire.Roots is
 
          declare
             Opt : Optional.Root :=
-                    Optional.Detect_Root (Den.Full_Name (Item));
+                    Optional.Detect_Root (Den.Filesystem.Full_Name (Item));
          begin
             if Opt.Is_Valid then
                Found.Insert
                  (TTY.URL (String (VFS.To_Portable
                   (Directories.Find_Relative_Path
-                     (Starting_Path, Den.Full_Name (Item))))
+                     (Starting_Path, Den.Filesystem.Full_Name (Item))))
                   & "/"
                   & Opt.Value.Release.Constant_Reference.Milestone.TTY_Image)
                   & ": "
