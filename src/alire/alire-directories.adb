@@ -440,16 +440,7 @@ package body Alire.Directories is
    begin
       return Result : constant Any_Path :=
         Den.Filesystem.Relative (Den.Scrub (Parent),
-                                 Den.Scrub (Child))
-      do
-         if AAA.Strings.Contains
-           (Result, "../../../../../../runneradmin/AppData/Local/Temp")
-         then
-            raise Program_Error with "Failed to find relative path from: "
-              & Parent & " --> " & Child
-              & " [" & Den.Scrub (Parent) & " --> " & Den.Scrub (Child) & "]";
-         end if;
-      end return;
+                                 Den.Scrub (Child));
    end Find_Relative_Path;
 
    ----------------------

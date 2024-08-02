@@ -1257,9 +1257,15 @@ package body Alire.Roots is
          begin
             if Opt.Is_Valid then
                Found.Insert
-                 (TTY.URL (String (VFS.To_Portable
-                  (Directories.Find_Relative_Path
-                     (Starting_Path, Den.Filesystem.Full_Name (Item))))
+                 (TTY.URL
+                    (String
+                         (VFS.To_Portable
+                              (Directories.Find_Relative_Path
+                                 (Den.Filesystem.Full_Name (Starting_Path),
+                                  Den.Filesystem.Full_Name (Item))))
+                         --  We use both full names because on Windows we see
+                         --  mixed short/long names for the same path if we
+                         --  apply Full_Name to only one of them.
                   & "/"
                   & Opt.Value.Release.Constant_Reference.Milestone.TTY_Image)
                   & ": "
