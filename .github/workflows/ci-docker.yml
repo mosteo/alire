@@ -25,6 +25,7 @@ jobs:
             - fedora-latest            # Test current Fedora compiler
             - ubuntu-lts               # Test current LTS Ubuntu compiler
             - arch-rolling             # Test Arch compiler (closest to FSF?)
+            - opensuse-leap            # Test OpenSUSE that has old GNAT
 
     steps:
     - name: Check out repository
