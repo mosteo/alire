@@ -350,6 +350,10 @@ package Alire.Solutions is
    -- I/O --
    ---------
 
+   function Image_One_Line (This : Solution) return String;
+   --  Simplified representation containing only solved milestones or unsolved
+   --  dependencies
+
    procedure Print (This     : Solution;
                     Root     : Alire.Releases.Release;
                     Env      : Properties.Vector;

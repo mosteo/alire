@@ -84,7 +84,11 @@ package body Alire.Solver is
    function Expanding (This : access Search_State;
                        Rel  : Conditional.Dependencies)
                        return access Search_State
-   is (This); -- Rel.Is_Empty
+   is
+   begin
+      This.Expanded.Append (Rel);
+      return This;
+   end Expanding;
 
    ---------------
    -- Targeting --
@@ -264,11 +268,6 @@ package body Alire.Solver is
          return Child;
       end Next;
 
-      package Solution_Sets is new Ada.Containers.Indefinite_Ordered_Sets
-        (Element_Type => Solutions.Solution,
-         "<"          => Solutions.Is_Better,
-         "="          => Solutions."=");
-
       Index_Query_Options : constant Index.Query_Options :=
                               (Load_From_Disk   => True,
                                Detect_Externals => Options.Detecting = Detect);
@@ -310,15 +309,6 @@ package body Alire.Solver is
       --  search status in each branch is stored in a number of trees that are
       --  the arguments of the Expand internal procedure, and in a Solution
       --  that is being incrementally built.
-
-      Solutions : Solution_Sets.Set;
-      --  We store here all solutions found. Depending on the completeness
-      --  policy, we may stop at the first complete solution or keep looking
-      --  until we are sure no complete solutions exist. If wanted, we can
-      --  explore the full solution space, although there is no use for this
-      --  at the moment. We do explore some incomplete solutions, to avoid
-      --  returning an incomplete solution where some missing crates could
-      --  have been solved.
 
       Tools : constant Releases.Containers.Release_Set :=
                                   Toolchains.Available
@@ -700,6 +690,73 @@ package body Alire.Solver is
       package State_Sets is new Ada.Containers.Indefinite_Ordered_Sets
         (Element_Type => State_Ptr);
 
+      --  This package is used to ensure consistent behaviors when accessing
+      --  the best solution found.
+      package Solutions is
+         procedure Include (Final_State : State_Ptr);
+         function First return Alire.Solutions.Solution;
+         function Length return Natural;
+         function Is_Trivial return Boolean;
+         --  Says if the first known solution is the trivial one (everything
+         --  missing:skipped). This solution sometimes is valid when there's
+         --  only unsolvable dependencies, as we do in some tests, so it would
+         --  be considered a complete solution. However, by allowing the solver
+         --  to proceed, it will find the reason for the missing dependencies,
+         --  which is preferable. IOWs, it's just a corner case to preserve
+         --  old behavior.
+      private
+         Trivial_Removed : Boolean := False;
+         --  We store a trivial solution to ensure that there is always one
+         --  available, but we discard it as soon as a proper one is stored.
+
+         States : State_Sets.Set;
+         --  We store here all terminal state solutions. To reuse the state
+         --  sorting, which is more comprehensive than solution sorting,
+         --  we store them with the whole state. In practice, we could move
+         --  comparison of solutions (Solutions.Is_Better) inside state
+         --  comparison, as it isn't used elsewhere.
+      end Solutions;
+
+      package body Solutions is
+
+         ----------------
+         -- Is_Trivial --
+         ----------------
+
+         function Is_Trivial return Boolean is (not Trivial_Removed);
+
+         -------------
+         -- Include --
+         -------------
+
+         procedure Include (Final_State : State_Ptr) is
+         begin
+            if States.Length = 1 and then not Trivial_Removed then
+               States.Delete_First;
+               Trivial_Removed := True;
+               Trace.Debug ("SOLVER: trivial solution dropped");
+            end if;
+
+            States.Include (Final_State);
+         end Include;
+
+         --------------------
+         -- First_Solution --
+         --------------------
+
+         function First return Alire.Solutions.Solution is
+         begin
+            return States.First_Element.To_Solution;
+         end First;
+
+         ------------
+         -- Length --
+         ------------
+
+         function Length return Natural is (Natural (States.Length));
+
+      end Solutions;
+
       States : State_Sets.Set;
       --  To avoid possibly deep recursivity that also may not find the best
       --  solution by doing a depth-first search, we keep a priority queue of
@@ -710,7 +767,7 @@ package body Alire.Solver is
       -------------
 
       function Partial return Natural
-      is (Natural (Solutions.Length) - Complete);
+      is (Solutions.Length - Complete);
 
       -------------------
       -- Progress_Line --
@@ -746,8 +803,8 @@ package body Alire.Solver is
       -- Store_Solution --
       --------------------
 
-      procedure Store_Solution (State : Search_State) is
-         Pre_Length : constant Count_Type := Solutions.Length;
+      procedure Store_Solution (State : State_Ptr) is
+         Pre_Length : constant Natural := Solutions.Length;
 
          Solution : constant Alire.Solutions.Solution := State.To_Solution;
          Pending  : constant Natural := State.Pending_Count;
@@ -756,12 +813,12 @@ package body Alire.Solver is
                       & (if Pending = 0
                         then "(TERMINAL)"
                         else "(pending deps:" & Pending'Image & ")")
-                      & " expanded as: "
-                      & State.Expanded.Image_One_Line
+                      & " solved as: "
+                      & Solution.Image_One_Line
                       & " complete: " & Solution.Is_Complete'Img
                       & "; composition: " & Solution.Composition'Img);
 
-         Solutions.Include (Solution);
+         Solutions.Include (State);
 
          if Pre_Length = Solutions.Length then
             Dupes := Dupes + 1;
@@ -779,9 +836,9 @@ package body Alire.Solver is
       procedure Enqueue (Action : String;
                          This   : access Search_State) is
 
-      ---------------------
-      -- Clean_Remaining --
-      ---------------------
+         ---------------------
+         -- Clean_Remaining --
+         ---------------------
 
          procedure Clean_Remaining is
             Remain : Conditional.Dependencies;
@@ -859,7 +916,7 @@ package body Alire.Solver is
          end if;
 
          if This.Target.Is_Empty and then This.Remaining.Is_Empty then
-            Store_Solution (This.all);
+            Store_Solution (State_Ptr'(This.all'Unchecked_Access));
          end if;
       end Enqueue;
 
@@ -870,6 +927,18 @@ package body Alire.Solver is
       procedure Expand (State : Search_State)
       is
          use Dependencies.Containers;
+
+         -------------------
+         -- Find_Conflict --
+         -------------------
+         --  Check if the given dependency is conflicting with some remaining
+         --  dependency. Of course this may miss still unknown transitive
+         --  dependencies, but for simple cases it will enhance our reporting.
+         function Find_Conflict (Mil : Milestones.Milestone) return Boolean
+         is (for some Pending of State.Remaining =>
+                Pending.Is_Value and then
+                Mil.Crate = Pending.Value.Crate and then
+            not Semver.Extended.Is_In (Mil.Version, Pending.Value.Versions));
 
          ------------------
          -- Expand_Value --
@@ -949,7 +1018,7 @@ package body Alire.Solver is
                --  If no reason to hint, plain missing
 
                Enqueue
-                 ("marking MISSING crate " & Dep.Image,
+                 ("marking MISSING:" & Reason'Image & " crate " & Dep.Image,
                   Next (State)
                   .Seeing (Raw_Dep)
                   .Targeting (State.Remaining)
@@ -1109,13 +1178,17 @@ package body Alire.Solver is
                        ("SOLVER: marking crate " & Dep.Image
                         & " MISSING in case pinned version "
                         & TTY.Version (Pin_Version.Image)
+                        & " within " & Dep.Versions.Image
                         & " is incompatible with other dependencies"
                         & " when the search tree was "
                         & Image_One_Line (State));
 
                      Expand_Missing
-                       (if Index.Releases_Satisfying (Pin_As_Dep,
-                                                      Props).Is_Empty
+                       (if Find_Conflict (Milestones.New_Milestone
+                                            (Dep.Crate, Pin_Version))
+                        then Conflict
+                        elsif Index.Releases_Satisfying (Pin_As_Dep,
+                                                         Props).Is_Empty
                         then Unavailable
                         else Skipped);
 
@@ -1506,6 +1579,11 @@ package body Alire.Solver is
 
             if Index.Releases_Satisfying (Dep, Props,
                                           Index_Query_Options).Is_Empty
+              and then
+                not
+                  (Pins.Depends_On (Dep.Crate) and then
+                   Pins.State (Dep.Crate).Is_Linked)
+                   --  Linked crates are solvable, even if not found in index
             then
                Unavailable_Direct_Deps.Include (Dep);
                Trace.Debug
@@ -1542,13 +1620,20 @@ package body Alire.Solver is
 
       function Solution_Found return Boolean is
       begin
+
+         --  Keep looking if only trivial available but pending statuses remain
+
+         if Solutions.Is_Trivial and then not States.Is_Empty then
+            return False;
+         end if;
+
          --  If the solution contains all solved dependencies, it is complete
 
-         if Solutions.First_Element.Is_Complete then
+         if Solutions.First.Is_Complete then
             Trace.Debug
               ("SOLVER: search ended with first COMPLETE solution");
             return True;
-         elsif Contains_All_Satisfiable (Solutions.First_Element) then
+         elsif Contains_All_Satisfiable (Solutions.First) then
             Trace.Debug
               ("SOLVER: search ended with first SATISFIABLE solution");
             --  There are missing, but these are not due to conflicts but
@@ -1604,7 +1689,7 @@ package body Alire.Solver is
                return Stop;
             end if;
 
-            if not Solutions.First_Element.Is_Complete then
+            if not Solutions.First.Is_Complete then
                Put_Warning ("Complete solution not found after "
                             & Timer.Image (Decimals => 0)
                             & " seconds.");
@@ -1617,7 +1702,7 @@ package body Alire.Solver is
             end if;
 
             Trace.Info ("");
-            Solutions.First_Element.Print_States (Level => Trace.Info);
+            Solutions.First.Print_States (Level => Trace.Info);
             Trace.Info ("");
 
             --  Options take precedence over any interaction yet to occur
@@ -1708,8 +1793,8 @@ package body Alire.Solver is
       function Solution_With_Extras return Alire.Solutions.Solution is
       begin
          declare
-            Best_Solution : Alire.Solutions.Solution :=
-                              Solutions.First_Element.With_Pins (Pins);
+            Best_Solution : Alire.Solutions.Solution
+              := Solutions.First.With_Pins (Pins);
          begin
 
             --  Mark pins as direct dependencies
@@ -1806,7 +1891,7 @@ package body Alire.Solver is
 
       --  Store a trivially bad solution to ensure there always is a solution
 
-      Solutions.Insert (States.First_Element.To_Solution);
+      Solutions.Include (States.First_Element);
 
       --  Check head state until success or exhaustion
 
