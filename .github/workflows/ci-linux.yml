@@ -34,6 +34,9 @@ jobs:
       uses: alire-project/alr-install@v1
       with:
         crates: gnat_native gprbuild
+        prefix: alire_prefix
+
+    - uses: mosteo-actions/gnat-toolchain-arch-checker@v1
 
     - name: Install Python 3.x (required for the testsuite)
       uses: actions/setup-python@v2
@@ -46,6 +49,13 @@ jobs:
       env:
         BRANCH: ${{ github.base_ref }}
         INDEX: ""
+
+    # Ascertain whether alr can run without the toolchain that built it
+    - name: Remove toolchain used for building & testing
+      shell: bash
+      run: |
+        rm -rf alire_prefix
+        which gnat || { echo "Toolchain purged"; ./bin/alr version; }
 
     - name: Upload binaries
       uses: actions/upload-artifact@v4
