@@ -37,6 +37,7 @@ jobs:
       uses: alire-project/alr-install@v1
       with:
         crates: gnat_native gprbuild
+        prefix: alire_prefix
 
     - name: Install FSF toolchain (AArch64)
       if: ${{ matrix.os == 'macos-14' }}
@@ -60,6 +61,13 @@ jobs:
       env:
         BRANCH: ${{ github.base_ref }}
         INDEX: ""
+
+    # Ascertain whether alr can run without the toolchain that built it
+    - name: Remove toolchain used for building & testing
+      shell: bash
+      run: |
+        rm -rf alire_prefix
+        which gnat || { echo "Toolchain purged"; ./bin/alr version; }
 
     - name: Upload binaries
       uses: actions/upload-artifact@v4
