@@ -50,6 +50,8 @@ jobs:
         echo $PWD/alire_prefix/bin >> $GITHUB_PATH
         echo "ARCH=aarch64" >> $GITHUB_ENV
 
+    - uses: mosteo-actions/gnat-toolchain-arch-checker@v1
+
     - name: Install Python 3.x (required for the testsuite)
       uses: actions/setup-python@v2
       with:

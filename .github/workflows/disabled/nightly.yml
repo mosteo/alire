@@ -38,18 +38,7 @@ jobs:
         crates: gnat_native gprbuild
         prefix: alire_prefix
 
-    - name: Display toolchain configuration and verify matching arch
-      shell: bash
-      run: |
-        case ${{runner.arch}} in
-          X64)   target_arch=x86_64;;
-          ARM64) target_arch=aarch64;;
-          *)     echo "Unknown arch" && exit 1;;
-        esac
-        which gcc
-        gcc -v
-        gcc -dumpmachine   && gcc -dumpmachine   | grep -q $target_arch || exit 1
-        gprbuild --version && gprbuild --version | grep -q $target_arch || exit 1
+    - uses: mosteo-actions/gnat-toolchain-arch-checker@v1
 
     - name: Install Python 3.x (required for the testsuite)
       uses: actions/setup-python@v5
