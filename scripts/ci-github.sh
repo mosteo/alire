@@ -29,15 +29,10 @@ fi
 # Patch version
 scripts/version-patcher.sh
 
-# use -static-libgcc only in recent-enough GCC versions (>=12). The version is
-# the last space-separated field of the first line in gcc --version output.
-# Also, this is only needed on macOS for now.
+# Use -static-libgcc only on macOS.
 ALR_LINKER_ARGS=
 if [ "$(get_OS)" == "macos" ]; then
-    gcc_version=$(gcc --version | head -n 1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | tail -n1 | cut -f1 -d.)
-    if [ "$(echo "$gcc_version >= 12" | bc)" -eq 1 ]; then
-        ALR_LINKER_ARGS="-static-libgcc"
-    fi
+    ALR_LINKER_ARGS="-static-libgcc"
 fi
 
 # Build alr if no argument is "build=false"
