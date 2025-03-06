@@ -32,7 +32,7 @@ semantic_versioning = "^3.0"
 simple_logging = "^2.0"
 si_units = "~0.2.2"
 stopwatch = "~0.1"
-toml_slicer = "~0.1"
+toml_slicer = "~0.1.2"
 uri_ada = "^2.0"
 spdx = "~0.2"
 
@@ -56,8 +56,8 @@ url    = "https://github.com/mosteo/aaa"
 commit = "73d99ae1ff2f5210dc41c2ea7afebe600f9e9916"
 
 [pins.ada_toml]
-url    = "https://github.com/pmderodat/ada-toml"
-commit = "e760110ad2b5b776a44dace31b8421532e429fbb"
+url    = "https://github.com/mosteo/ada-toml"
+commit = "b0c9e6a6b96054b8afed14959e4140960285d552"
 
 [pins.ansiada]
 url    = "https://github.com/mosteo/ansi-ada"
@@ -112,15 +112,6 @@ commit = "9329d2591b82440ccc859a53f1380ac07ea4194d"
 [pins.stopwatch]
 url    = "https://github.com/mosteo/stopwatch"
 commit = "f607a63b714f09bbf6126de9851cbc21cf8666c9"
-
-[pins.toml_slicer]
-url    = "https://github.com/mosteo/toml_slicer"
-commit = "3e5cbdb5673b85a1da6344a41764ef1cbafe3289"
-
-[pins.yeison_12]
-url    = "https://github.com/mosteo/yeison"
-subdir = "yeison_12"
-commit = "88b66242f8826fd4847e0ea06c7901b753e03c74"
 
 # To disable version updating, export ALR_VERSION_DONT_PATCH with any value
 
