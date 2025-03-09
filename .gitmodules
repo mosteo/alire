@@ -69,3 +69,9 @@
 [submodule "deps/yeison"]
 	path = deps/yeison
 	url = https://github.com/mosteo/yeison
+[submodule "deps/templates-parser"]
+	path = deps/templates-parser
+	url = https://github.com/AdaCore/templates-parser
+[submodule "deps/xmlada"]
+	path = deps/xmlada
+	url = https://github.com/AdaCore/xmlada

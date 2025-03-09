@@ -1,6 +1,6 @@
 pragma Warnings (Off);
 
---  AWSRes v1.3 - Generated on March 09 2025 at 20:09:52
+--  AWSRes v1.3 - Generated on March 09 2025 at 21:11:43
 
 pragma Style_Checks (Off);
 
@@ -36,7 +36,7 @@ package body r is
          Register
             ("crate_bin/alire.toml",
              r.crate_bin_alire_toml.Content'Access,
-             GNAT.Calendar.Time_Of (2025, 03, 09, 09, 27, 18, 0.0));
+             GNAT.Calendar.Time_Of (2025, 03, 09, 20, 11, 29, 0.0));
       end if;
    end Init;
 

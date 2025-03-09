@@ -11,8 +11,12 @@ with r.crate_bin_alire_toml;
 
 procedure Alr.Main is
 begin
-   Alire.Templates.Write_File (r.crate_bin_alire_toml.Content'Access,
-                               "/tmp/al.to");
+   Alire.Templates.Translate_File
+     (r.crate_bin_alire_toml.Content'Access,
+      "/tmp/al.to",
+      Alire.Templates.New_Translation
+        .Append ("NAME", "mycrate")
+     );
 
    Trace.Debug ("alr platform configured");
 
