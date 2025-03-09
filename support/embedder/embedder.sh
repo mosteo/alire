@@ -23,4 +23,4 @@ if [ ! -f awsres ]; then
     rm -rf "$tmp"
 fi
 
-# Clean up
+# Actually generate the embedded resources
