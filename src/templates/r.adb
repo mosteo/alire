@@ -1,11 +1,11 @@
 pragma Warnings (Off);
 
---  AWSRes v1.3 - Generated on March 09 2025 at 21:11:43
+--  AWSRes v1.3 - Generated on March 09 2025 at 23:00:20
 
 pragma Style_Checks (Off);
 
 with r.crate_bin_crate_bin_gpr;
-with r.crate_bin_src_crate_bin_adb;
+with r.crate_bin_src_bin_adb;
 with r.crate_bin_gitignore;
 with r.crate_bin_alire_toml;
 
@@ -26,9 +26,9 @@ package body r is
              r.crate_bin_crate_bin_gpr.Content'Access,
              GNAT.Calendar.Time_Of (2025, 03, 09, 09, 27, 18, 0.0));
          Register
-            ("crate_bin/src/crate_bin.adb",
-             r.crate_bin_src_crate_bin_adb.Content'Access,
-             GNAT.Calendar.Time_Of (2025, 03, 09, 09, 27, 18, 0.0));
+            ("crate_bin/src/bin.adb",
+             r.crate_bin_src_bin_adb.Content'Access,
+             GNAT.Calendar.Time_Of (2025, 03, 09, 22, 00, 01, 0.0));
          Register
             ("crate_bin/.gitignore",
              r.crate_bin_gitignore.Content'Access,

@@ -8,13 +8,10 @@ package Alire.Templates with Elaborate_Body is
 
    type Embedded is access constant Ada.Streams.Stream_Element_Array;
 
-   type Translations (<>) is tagged private;
+   function "+" (S : aliased Ada.Streams.Stream_Element_Array) return Embedded;
+   --  Sweep under the rug uses of 'Access, used in child package Builtins
 
-   function New_Translation return Translations;
-
-   function Append (This : Translations;
-                    Var  : String;
-                    Val  : String) return Translations;
+   type Translations (<>) is private;
 
    procedure Register (File  : Relative_Path;
                        Data  : Embedded;
@@ -45,12 +42,20 @@ package Alire.Templates with Elaborate_Body is
 
    procedure Translate_Tree (Parent : Relative_Path;
                              Files  : Tree'Class;
-                             Map    : Translations'Class);
+                             Map    : Translations);
    --  Will create all files under Parent, respecting their relative path and
    --  applying the given translations. Translations will also be applied to
    --  paths.
 
 private
+
+   ---------
+   -- "+" --
+   ---------
+
+   function "+" (S : aliased Ada.Streams.Stream_Element_Array) return Embedded
+   is (S'Unchecked_Access);
+   --  Hide uses of 'Access, used in child package Builtins
 
    type Translations is tagged record
       Set : Templates_Parser.Translate_Set;

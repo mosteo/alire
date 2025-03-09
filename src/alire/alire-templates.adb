@@ -67,7 +67,7 @@ package body Alire.Templates is
 
    procedure Translate_Tree (Parent : Relative_Path;
                              Files  : Tree'Class;
-                             Map    : Translations'Class)
+                             Map    : Translations)
    is
       package Dirs renames Directories;
       package TP renames Templates_Parser;
@@ -90,7 +90,7 @@ package body Alire.Templates is
 
             --  And translate the actual file
             Translate_File (Files (I),
-                            File_Name,
+                            Parent / File_Name,
                             Map);
          end;
       end loop;
