@@ -1,11 +1,28 @@
-with r;
+with Ada.Streams.Stream_IO;
 
 package body Alire.Templates is
 
-   procedure Register (File  : Relative_Path;
-                       Bytes : Data;
-                       Stamp : Ada.Calendar.Time) is null;
+   ----------------
+   -- Write_File --
+   ----------------
 
-begin
-   r.Init;
+   procedure Write_File (Src : Embedded;
+                         Dst : Relative_File)
+   is
+      use Ada.Streams.Stream_IO;
+      File : File_Type;
+   begin
+      Create (File, Name => Dst);
+      Write (File, Src.all);
+   exception
+      when E : others =>
+         Log_Exception (E);
+
+         if Is_Open (File) then
+            Close (File);
+         end if;
+
+         raise;
+   end Write_File;
+
 end Alire.Templates;

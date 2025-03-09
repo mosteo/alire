@@ -6,8 +6,14 @@ with Alire.Errors;
 with Alr.Commands;
 with Alr.Last_Chance_Handler;
 
+with Alire.Templates;
+with r.crate_bin_alire_toml;
+
 procedure Alr.Main is
 begin
+   Alire.Templates.Write_File (r.crate_bin_alire_toml.Content'Access,
+                               "/tmp/al.to");
+
    Trace.Debug ("alr platform configured");
 
    Commands.Execute;

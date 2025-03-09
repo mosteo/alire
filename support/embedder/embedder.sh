@@ -2,20 +2,22 @@
 
 # Harden the script
 
-trap 'cleanup' EXIT
+trap 'cd "$startdir"' EXIT
 trap 'echo "ERROR at line ${LINENO} (code: $?)" >&2' ERR
 trap 'echo "Interrupted" >&2 ; exit 1' INT
 
 set -o errexit
 set -o nounset
 
-# Location of generated files
-generated=../../src/templates
+# Start by entering the directory of the script
+startdir=$PWD
+pushd "$(dirname "$0")"
 
-function cleanup {
-    # Delete softlink if it is indeed a softlink
-    [ -L templates ] && rm -f templates
-}
+# Identify the base dir of the project
+base=$(git rev-parse --show-toplevel)
+
+# Location of generated files
+generated=$base/src/templates
 
 # Build awsres from AWS only if awsres is not yet available here or in path
 
@@ -40,18 +42,11 @@ fi
 export PATH+=":$PWD"
 
 # Clean up old resources
-[ -L templates ] && rm -f templates
 rm -rf $generated
 mkdir -p $generated
 
-# Create a softlink to avoid .. paths that confuse awsres
-ln -s ../../templates templates
-
-# $ ./awsres -h
 # AWSRes - Resource Creator v1.3
-
 # Usage : awsres [-hopqrRzu] file1/dir1 [-zu] [file2/dir2...]
-
 #         -a      : packages are named after the actual filenames
 #         -o dir  : specify the output directory
 #         -p str  : prefix all resource names with the given string
@@ -61,20 +56,23 @@ ln -s ../../templates templates
 #         -u      : disable compression of following resources
 #         -q      : quiet mode
 
+# We change momentarily into the templates folder to shorten generated filenames
+# and avoid problems with ".." in paths that confuse awsres.
+cd "$base/templates" && \
 awsres \
     -a \
     -o $generated \
     -R \
     -r r \
     -q \
-    -z \
-    templates
+    .
 
 # We use actual file names rather than hashes so changes in version control, and
 # detecting missing resources, is easier.
 
-# Fix bad package names (two __ in a row)
+# Fix bad package names (two __ in a row) for some files (like .gitignore)
 find $generated -type f -exec sed -i 's/__/_/g' {} \;
+
 # Likewise, but for file names
 find $generated -type f -name '*__*' -exec \
     bash -c 'mv "$1" "${1//__/_}"' _ {} \;
