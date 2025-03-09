@@ -1,12 +1,29 @@
 with Ada.Streams.Stream_IO;
 with Ada.Wide_Wide_Text_IO;
 
+with Alire.Directories;
+with Alire.VFS;
+
 with LML;
 
 package body Alire.Templates is
 
-      ---------------
-   -- as_string --
+   ------------
+   -- Append --
+   ------------
+
+   function Append (This : Tree;
+                    File : Portable_Path;
+                    Data : Embedded) return Tree
+   is
+   begin
+      return Result : Tree := This do
+         Result.Insert (File, Data);
+      end return;
+   end Append;
+
+   ---------------
+   -- As_String --
    ---------------
 
    function As_String (Data : Embedded) return String is
@@ -43,6 +60,41 @@ package body Alire.Templates is
 
          raise;
    end Translate_File;
+
+   --------------------
+   -- Translate_Tree --
+   --------------------
+
+   procedure Translate_Tree (Parent : Relative_Path;
+                             Files  : Tree'Class;
+                             Map    : Translations'Class)
+   is
+      package Dirs renames Directories;
+      package TP renames Templates_Parser;
+      use Directories.Operators;
+      use File_Data_Maps;
+   begin
+      for I in Files.Iterate loop
+         declare
+            Raw_File_Name : constant Portable_Path := Key (I);
+
+            --  Translate the path
+            File_Name     : constant Relative_File :=
+                              VFS.To_Native
+                                (Portable_Path
+                                   (TP.Translate (String (Raw_File_Name),
+                                                  Map.Set)));
+         begin
+            --  Ensure parent exists
+            Dirs.Create_Tree (Parent / Dirs.Parent (File_Name));
+
+            --  And translate the actual file
+            Translate_File (Files (I),
+                            File_Name,
+                            Map);
+         end;
+      end loop;
+   end Translate_Tree;
 
    ----------------
    -- Write_File --
