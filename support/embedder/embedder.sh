@@ -9,6 +9,9 @@ trap 'echo "Interrupted" >&2 ; exit 1' INT
 set -o errexit
 set -o nounset
 
+# Location of generated files
+generated=../../src/templates
+
 function cleanup {
     # Delete softlink if it is indeed a softlink
     [ -L templates ] && rm -f templates
@@ -38,8 +41,8 @@ export PATH+=":$PWD"
 
 # Clean up old resources
 [ -L templates ] && rm -f templates
-rm -rf ../../src/templates
-mkdir -p ../../src/templates
+rm -rf $generated
+mkdir -p $generated
 
 # Create a softlink to avoid .. paths that confuse awsres
 ln -s ../../templates templates
@@ -60,11 +63,28 @@ ln -s ../../templates templates
 
 awsres \
     -a \
-    -o ../../src/templates \
+    -o $generated \
     -R \
     -r r \
     -q \
     -z \
     templates
+
+# We use actual file names rather than hashes so changes in version control, and
+# detecting missing resources, is easier.
+
+# Fix bad package names (two __ in a row)
+find $generated -type f -exec sed -i 's/__/_/g' {} \;
+# Likewise, but for file names
+find $generated -type f -name '*__*' -exec \
+    bash -c 'mv "$1" "${1//__/_}"' _ {} \;
+
+# Since we don't want to depend on superheavy AWS, we replace calls to it with
+# our own registering procedure.
+find $generated -type f -exec \
+    sed -i 's/AWS\.Resources\.Embedded/Alire.Templates/g' {} \;
+
+# Silence warnings in generated registering code
+sed -i '1s/^/pragma Warnings (Off);\n/' $generated/r.adb
 
 echo "Resources created successfully"
