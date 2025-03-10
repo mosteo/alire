@@ -32,7 +32,7 @@ semantic_versioning = "^3.0"
 simple_logging = "^2.0"
 si_units = "~0.2.2"
 stopwatch = "~0.1"
-templates_parser = "^24"
+templates_parser = "^21" # Once we drop GNAT 10 we can go to ^24 (last Ada 2012 version)
 toml_slicer = "~0.1"
 uri_ada = "^2.0"
 spdx = "~0.2"
@@ -42,7 +42,7 @@ spdx = "~0.2"
 CLIC_LIBRARY_TYPE="static"
 XMLADA_BUILD_MODE="Production"
 
-# Building alr requires the explicit setting of this variable
+# Building alr requires the explicit setting of these variables
 [gpr-set-externals."case(os)"]
 freebsd = { ALIRE_OS = "freebsd", GNATCOLL_OS = "unix",    PRJ_TARGET = "FreeBSD" }
 openbsd = { ALIRE_OS = "openbsd", GNATCOLL_OS = "unix",    PRJ_TARGET = "UNIX" }
