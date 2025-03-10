@@ -1,11 +1,11 @@
 
---  AWSRes v1.3 - Generated on March 09 2025 at 23:00:20
+--  AWSRes v1.3 - Generated on March 10 2025 at 21:38:24
 
 pragma Style_Checks (Off);
 
 with Ada.Streams;
 
-package r.crate_bin_src_bin_adb is
+package r.crate_bin_src_name_adb is
 
    use Ada.Streams;
 
@@ -17,4 +17,4 @@ package r.crate_bin_src_bin_adb is
          80,  73,  84,  65,  76,  73,  90,  69,  58,  78,  65,  77,  69,  95,
          64,  59,  10);
 
-end r.crate_bin_src_bin_adb;
+end r.crate_bin_src_name_adb;

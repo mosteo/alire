@@ -1,14 +1,15 @@
-with "config/crate_bin_config.gpr";
-project Crate_Bin is
+with "config/@_NAME_@_config.gpr";
+
+project @_CAPITALIZE:NAME_@ is
 
    for Source_Dirs use ("src/", "config/");
-   for Object_Dir use "obj/" & Crate_Bin_Config.Build_Profile;
+   for Object_Dir use "obj/" & @_CAPITALIZE:NAME_@_Config.Build_Profile;
    for Create_Missing_Dirs use "True";
    for Exec_Dir use "bin";
-   for Main use ("crate_bin.adb");
+   for Main use ("@_NAME_@.adb");
 
    package Compiler is
-      for Default_Switches ("Ada") use Crate_Bin_Config.Ada_Compiler_Switches;
+      for Default_Switches ("Ada") use @_CAPITALIZE:NAME_@_Config.Ada_Compiler_Switches;
    end Compiler;
 
    package Binder is
@@ -19,4 +20,4 @@ project Crate_Bin is
       for Artifacts (".") use ("share");
    end Install;
 
-end Crate_Bin;
+end @_CAPITALIZE:NAME_@;

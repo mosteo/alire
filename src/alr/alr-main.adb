@@ -6,14 +6,8 @@ with Alire.Errors;
 with Alr.Commands;
 with Alr.Last_Chance_Handler;
 
-with Alire.Templates.Builtins; use Alire.Templates;
-
 procedure Alr.Main is
 begin
-   Translate_Tree ("/tmp/tp/crate",
-                   Builtins.Crate_Bin,
-                   Builtins.Init_Crate_Translation (Alire."+" ("mycrate")));
-
    Trace.Debug ("alr platform configured");
 
    Commands.Execute;

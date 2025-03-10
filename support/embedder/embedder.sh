@@ -64,7 +64,6 @@ awsres \
     -o $generated \
     -R \
     -r r \
-    -q \
     .
 
 # We use actual file names rather than hashes so changes in version control, and
