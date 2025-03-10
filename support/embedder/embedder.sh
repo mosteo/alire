@@ -9,12 +9,29 @@ trap 'echo "Interrupted" >&2 ; exit 1' INT
 set -o errexit
 set -o nounset
 
+# Function that recursively hashes a directory and prints the hash
+function hashdir() {
+    local dir="$1" # Directory to hash
+    find "$dir" -type f -exec sha256sum {} + | sort | sha256sum | cut -d ' ' -f 1
+}
+
 # Start by entering the directory of the script
 startdir=$PWD
 pushd "$(dirname "$0")"
+scriptdir=$PWD
 
 # Identify the base dir of the project
 base=$(git rev-parse --show-toplevel)
+
+# Check whether we need to regenerate, based on the hash of the templates
+# stored in ./templates.hash
+
+old_hash=$(cat ./templates.hash 2>/dev/null || true)
+new_hash=$(hashdir "$base/templates")
+if [ "$old_hash" = "$new_hash" ]; then
+    echo "No changes in templates, skipping generation"
+    exit 0
+fi
 
 # Location of generated files
 generated=$base/src/templates
@@ -58,13 +75,14 @@ mkdir -p $generated
 
 # We change momentarily into the templates folder to shorten generated filenames
 # and avoid problems with ".." in paths that confuse awsres.
-cd "$base/templates" && \
+pushd "$base/templates" && \
 awsres \
     -a \
     -o $generated \
     -R \
     -r r \
-    .
+    . && \
+popd
 
 # We use actual file names rather than hashes so changes in version control, and
 # detecting missing resources, is easier.
@@ -83,5 +101,9 @@ find $generated -type f -exec \
 
 # Silence warnings in generated registering code
 sed -i '1s/^/pragma Warnings (Off);\n/' $generated/r.adb
+
+# Write hash after successful generation
+echo "$new_hash" > "$scriptdir"/templates.hash
+echo "Templates hash updated in $scriptdir/templates.hash with value $new_hash"
 
 echo "Resources created successfully"

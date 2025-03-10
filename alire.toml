@@ -136,3 +136,12 @@ command = ["pwsh", "scripts/version-patcher.ps1"]
 type = "pre-build"
 command = ["scripts/version-patcher.sh"]
 
+# Before building, on Linux only, we regenerate resources. This is not needed
+# on other platforms as this is only to ensure that in the rare case of
+# template modification, the developer on Linux has not to regenerate manually
+# every time. For builds on GitHub, embedded templates should be up to date.
+[[actions]]
+[actions.'case(os)'.linux]
+type = "pre-build"
+command = ["support/embedder/embedder.sh"]
+
