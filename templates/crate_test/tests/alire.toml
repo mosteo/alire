@@ -1,4 +1,4 @@
-name = "@_CAPITALIZE:NAME_@_tests"
+name = "@_NAME_@_tests"
 description = "Tests for the built-in Alire test runner"
 version = "0.0.0-test"
 

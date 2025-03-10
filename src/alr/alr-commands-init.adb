@@ -12,8 +12,6 @@ with Alire.Utils.User_Input.Query_Config;
 
 with CLIC.User_Input;
 
-with TOML;
-
 with SPDX;
 with CLIC.TTY; use CLIC.TTY;
 
@@ -35,7 +33,6 @@ package body Alr.Commands.Init is
    procedure Generate (Cmd  : Command;
                        Info : Alire.Templates.Builtins.Crate_Init_Info)
    is
-      use AAA.Strings;
       use Dirs.Operators;
 
       For_Library : constant Boolean := Info.Is_Library;
@@ -47,52 +44,6 @@ package body Alr.Commands.Init is
          else Dirs.Full_Name (Name.As_String));
       Test_Directory : constant Alire.Absolute_Path :=
          Directory / Alire.Paths.Default_Tests_Folder;
-
-      ------------
-      -- Escape --
-      ------------
-
-      function Escape (S : String) return String
-      --  We trick the TOML exporter to get a valid escaped string
-      is
-         use TOML;
-         Table : constant TOML_Value := Create_Table;
-      begin
-         Table.Set ("key", TOML.Create_String (S));
-
-         --  Remove excess whitespace and quotation
-         declare
-            Result : constant String :=
-                       Trim
-                         (Trim
-                            (Tail (TOML.Dump_As_String (Table), '='),
-                            ASCII.LF));
-         begin
-            --  Trimming the TOML quotes at the extremes fails for a
-            --  string with quotes at the extremes of the string because
-            --  Ada.Strings.Trim removes those too! So just remove the
-            --  quotes we know are there.
-            return Result (Result'First + 1 .. Result'Last - 1);
-         end;
-      end Escape;
-
-      function Q (S : String) return String is ('"' & Escape (S) & '"');
-      --  Quote string
-
-      function Q (S : Unbounded_String) return String
-      is (Q (To_String (S)));
-      --  Quote string
-
-      function Arr (S : String) return String is ("[" & S & "]");
-      --  Wrap string into TOML array
-
-      function Q_Arr (Arr : AAA.Strings.Vector) return String
-      is (if Arr.Is_Empty
-          then "[]"
-          else "[""" & Arr.Flatten (""", """) & """]");
-      --  String vector to TOML array of strings
-
-      pragma Unreferenced (Q, Arr, Q_Arr);
 
       ---------------------
       -- Generate_Config --

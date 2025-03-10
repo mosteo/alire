@@ -16,6 +16,8 @@ with R.Crate_Test_Tests_Common_Name_Tests_Ads;
 with R.Crate_Test_Tests_Crate_Test_Tests_Gpr;
 with R.Crate_Test_Tests_Src_Name_Testsxexample_Test_Adb;
 
+private with Alire.TOML_Adapters;
+
 package Alire.Templates.Builtins is
 
    type Crate_Init_Info is record
@@ -69,6 +71,10 @@ package Alire.Templates.Builtins is
 
 private
 
+   pragma Style_Checks (On);
+
+   use TOML_Adapters;
+
    ----------------------------
    -- Init_Crate_Translation --
    ----------------------------
@@ -76,13 +82,13 @@ private
    function Init_Crate_Translation (Info : Crate_Init_Info)
                                     return Translations
    is (New_Translation
-       .Append ("NAME", Info.Name)
-       .Append ("LOGIN", Info.GitHub_Login)
-       .Append ("USERNAME", Info.Username)
-       .Append ("EMAIL", Info.Email)
-       .Append ("LICENSES", Info.Licenses)
-       .Append ("DESCRIPTION", Info.Description)
-       .Append ("WEBSITE", Info.Website)
+       .Append ("NAME",        Info.Name)
+       .Append ("LOGIN",       Info.GitHub_Login)
+       .Append ("USERNAME",    Escape (+Info.Username))
+       .Append ("EMAIL",       Info.Email)
+       .Append ("LICENSES",    Info.Licenses)
+       .Append ("DESCRIPTION", Escape (+Info.Description))
+       .Append ("WEBSITE",     Info.Website)
        .Append ("TAGS",
          (if Info.Tags.Is_Empty
           then ""

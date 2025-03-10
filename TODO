@@ -1,6 +1,2 @@
-- TOML escaping
-- Empty line at end of main.adb
 - Hash to detect change in embedded files
-- Capitalization in test crate
 - Use ^21 in alire.toml
-- Line breaks

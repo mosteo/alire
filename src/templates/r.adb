@@ -1,6 +1,6 @@
 pragma Warnings (Off);
 
---  AWSRes v1.3 - Generated on March 10 2025 at 21:38:24
+--  AWSRes v1.3 - Generated on March 10 2025 at 23:05:57
 
 pragma Style_Checks (Off);
 
@@ -31,7 +31,7 @@ package body r is
          Register
             ("crate_bin/alire.toml",
              r.crate_bin_alire_toml.Content'Access,
-             GNAT.Calendar.Time_Of (2025, 03, 10, 20, 38, 21, 0.0));
+             GNAT.Calendar.Time_Of (2025, 03, 10, 22, 05, 54, 0.0));
          Register
             ("crate_bin/name.gpr",
              r.crate_bin_name_gpr.Content'Access,
@@ -47,7 +47,7 @@ package body r is
          Register
             ("crate_lib/alire.toml",
              r.crate_lib_alire_toml.Content'Access,
-             GNAT.Calendar.Time_Of (2025, 03, 10, 17, 41, 19, 0.0));
+             GNAT.Calendar.Time_Of (2025, 03, 10, 22, 05, 48, 0.0));
          Register
             ("crate_lib/name.gpr",
              r.crate_lib_name_gpr.Content'Access,
@@ -59,7 +59,7 @@ package body r is
          Register
             ("crate_test/tests/alire.toml",
              r.crate_test_tests_alire_toml.Content'Access,
-             GNAT.Calendar.Time_Of (2025, 03, 10, 17, 19, 27, 0.0));
+             GNAT.Calendar.Time_Of (2025, 03, 10, 21, 55, 39, 0.0));
          Register
             ("crate_test/tests/common/name_tests.ads",
              r.crate_test_tests_common_name_tests_ads.Content'Access,
