@@ -2,10 +2,10 @@
 Filter test runs by name in the builtin test runner
 """
 
+from glob import glob
 import os.path
 
 from drivers.alr import init_local_crate, run_alr
-from drivers.asserts import assert_match
 
 def make_test(name: str):
    cap = name[0].upper() + name[1:]
@@ -17,7 +17,8 @@ end Xxx_Tests.{cap};
 """)
 
 init_local_crate("xxx", with_test=True)
-os.remove("./tests/src/xxx_tests-example_test.adb")
+# Remove default test
+os.remove(glob("./tests/src/*.adb")[0])
 
 for test in ["yes1", "yes2", "yes3", "no1", "no2"]:
    make_test(test)

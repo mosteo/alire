@@ -5,7 +5,7 @@ Test init command produced artifacts and options
 import os.path
 
 from drivers.alr import run_alr
-from drivers.asserts import assert_eq, assert_match
+from drivers.asserts import assert_match
 from drivers.helpers import compare, contents
 
 test_dir = os.getcwd()
@@ -36,11 +36,12 @@ compare(contents('xxx'), ['xxx/.gitignore',
                           'xxx/src',
                           'xxx/src/xxx.adb',
                           'xxx/tests',
+                          'xxx/tests/.gitignore',
                           'xxx/tests/alire.toml',
                           'xxx/tests/common',
                           'xxx/tests/common/xxx_tests.ads',
                           'xxx/tests/src',
-                          'xxx/tests/src/xxx_tests-example_test.adb',
+                          'xxx/tests/src/xxx_tests-assertions_enabled.adb',
                           'xxx/tests/xxx_tests.gpr',
                           'xxx/xxx.gpr'])
 
@@ -63,12 +64,13 @@ compare(contents('aaa'), ['aaa/.gitignore',
                           'aaa/src',
                           'aaa/src/aaa.adb',
                           'aaa/tests',
+                          'aaa/tests/.gitignore',
                           'aaa/tests/aaa_tests.gpr',
                           'aaa/tests/alire.toml',
                           'aaa/tests/common',
                           'aaa/tests/common/aaa_tests.ads',
                           'aaa/tests/src',
-                          'aaa/tests/src/aaa_tests-example_test.adb'])
+                          'aaa/tests/src/aaa_tests-assertions_enabled.adb'])
 
 # Init without skeleton
 run_alr('init', '--bin', '--no-skel', 'yyy')
@@ -131,11 +133,12 @@ compare(contents('.'), ['./.gitignore',
                         './src',
                         './src/zzz.adb',
                         './tests',
+                        './tests/.gitignore',
                         './tests/alire.toml',
                         './tests/common',
                         './tests/common/zzz_tests.ads',
                         './tests/src',
-                        './tests/src/zzz_tests-example_test.adb',
+                        './tests/src/zzz_tests-assertions_enabled.adb',
                         './tests/zzz_tests.gpr',
                         './zzz.gpr'])
 
