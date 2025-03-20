@@ -6,15 +6,15 @@ with Alire.Errors;
 with Alire.Directories;
 with Alire.Formatting;
 with Alire.OS_Lib.Subprocess;
+with Alire.Platforms;
 with Alire.Settings.Builtins;
 with Alire.Spawn;
-with Alire.VFS;
 with Alire.URI;
 with Alire.Utils;             use Alire.Utils;
 with Alire.Utils.Tools;
 
-with GNATCOLL.OS.Constants;
-with GNATCOLL.VFS;
+with Den.Filesystem;
+with Den.Walk;
 
 package body Alire.Origins.Deployers.Source_Archive is
 
@@ -31,17 +31,15 @@ package body Alire.Origins.Deployers.Source_Archive is
 
       package Subprocess renames Alire.OS_Lib.Subprocess;
 
-      use type GNATCOLL.OS.OS_Type;
-
       Unused : AAA.Strings.Vector;
    begin
 
       --  Make sure tar is installed
       Utils.Tools.Check_Tool (Utils.Tools.Tar);
 
-      case GNATCOLL.OS.Constants.OS is
+      case Platforms.On_Windows is
 
-         when GNATCOLL.OS.Windows =>
+         when True =>
 
             --  On some versions of tar found on Windows, an option is required
             --  to force e.g. C: to mean a local file location rather than the
@@ -73,7 +71,7 @@ package body Alire.Origins.Deployers.Source_Archive is
                      Err_To_Out => True);
             end;
 
-         when GNATCOLL.OS.Unix | GNATCOLL.OS.MacOS =>
+         when False =>
 
             --  On other platforms, just run tar without --force-local
             Unused := Subprocess.Checked_Spawn_And_Capture
@@ -138,7 +136,6 @@ package body Alire.Origins.Deployers.Source_Archive is
                       Folder   : Directory_Path)
                       return Outcome
    is
-      use GNATCOLL.VFS;
       use Alire.Directories;
       Archive_File : constant File_Path :=
         Folder / Ada.Directories.Simple_Name (Filename);
@@ -162,7 +159,8 @@ package body Alire.Origins.Deployers.Source_Archive is
       end Exec_Check;
    begin
       Trace.Debug ("Creating folder: " & Folder);
-      Create (+Folder).Make_Dir;
+
+      Directories.Create_Tree (Folder);
 
       Trace.Detail ("Downloading file: " & URL);
       Alire.Spawn.Settings_Command
@@ -220,18 +218,19 @@ package body Alire.Origins.Deployers.Source_Archive is
       -----------------------
 
       procedure Check_And_Move_Up is
-         Contents : constant VFS.Virtual_File_Vector :=
-                      VFS.Read_Dir
-                        (VFS.New_Virtual_File (VFS.From_FS (Dst_Dir)));
-         Success  : Boolean;
+         use Directories.Operators;
+
+         Contents : constant Den.Sorted_Paths :=
+                      Den.Walk.Ls (Den.Scrub (Dst_Dir),
+                                   Options => (Canonicalize => True));
       begin
-         if Natural (Contents.Length) = 0 then
+         if Contents.Is_Empty then
             raise Checked_Error with Errors.Set
               ("No content where a single directory was expected: " & Dst_Dir);
          end if;
 
          if Natural (Contents.Length) /= 1 or else
-           not Contents.First_Element.Is_Directory
+           not Directories.Is_Directory (Contents.First_Element)
          then
             raise Checked_Error with Errors.Set
               ("Unexpected contents where a single directory was expected: "
@@ -239,43 +238,45 @@ package body Alire.Origins.Deployers.Source_Archive is
          end if;
 
          Trace.Debug ("Unpacked crate root detected as: "
-                      & Contents.First_Element.Display_Base_Dir_Name);
+                      & Contents.First_Element);
 
          --  Move everything up one level:
 
-         for File of VFS.Read_Dir (Contents.First_Element) loop
+         for File of Den.Walk.Ls (Dst_Dir / Contents.First_Element,
+                                  Options => (Canonicalize => True))
+         loop
             declare
-               use type VFS.Virtual_File;
-               New_Name : constant VFS.Virtual_File :=
-                            Contents.First_Element.Get_Parent /
-                              VFS.Simple_Name (File);
+               New_Name : constant String :=
+                            Directories.Parent (Contents.First_Element)
+                            / File;
             begin
-               GNATCOLL.VFS.Rename
-                 (File      => File,
-                  Full_Name => New_Name,
-                  Success   => Success);
-
-               if not Success then
+               Dirs.Rename
+                 (Old_Name => File,
+                  New_Name => New_Name);
+            exception
+               when E : Dirs.Use_Error =>
+                  Log_Exception (E);
                   raise Checked_Error with Errors.Set
-                    ("Could not rename " & File.Display_Full_Name
-                     & " to " & New_Name.Display_Full_Name);
-               end if;
+                    ("Could not rename " & File
+                     & " to " & New_Name);
             end;
          end loop;
 
          --  Delete the folder, that must be empty:
 
-         Contents.First_Element.Remove_Dir (Success => Success);
-         if not Success then
-            raise Checked_Error with Errors.Set
-              ("Could not remove supposedly empty directory: "
-               & Contents.First_Element.Display_Full_Name);
-         end if;
+         begin
+            Den.Filesystem.Delete_Directory (Contents.First_Element);
+         exception
+            when E : others =>
+               Log_Exception (E);
+               raise Checked_Error with Errors.Set
+                 ("Could not remove supposedly empty directory: "
+                  & Contents.First_Element);
+         end;
 
       end Check_And_Move_Up;
 
       package Subprocess renames Alire.OS_Lib.Subprocess;
-      use GNATCOLL.VFS;
 
    begin
 
@@ -292,13 +293,11 @@ package body Alire.Origins.Deployers.Source_Archive is
                --  the source file, in case the given name is
                --  relative.
                Src_File_Full_Name : constant Absolute_Path
-                 := +GNATCOLL.VFS.Full_Name
-                   (GNATCOLL.VFS.Create_From_Base (+Src_File));
+                 := Den.Canonical (Src_File);
 
                --  Create the destination directory
-               Dst       : constant Virtual_File := Create (+Dst_Dir);
                Dst_Guard : Directories.Temp_File :=
-                 Directories.With_Name (+Dst.Full_Name);
+                 Directories.With_Name (Directories.Full_Name (Dst_Dir));
 
                --  Enter the destination directory, and automatically restore
                --  the current dir at the end of the scope.

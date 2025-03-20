@@ -1,9 +1,8 @@
 with Ada.Directories;
 
+with Alire.Directories;
 with Alire.Errors;
 with Alire.OS_Lib.Subprocess;
-
-with GNATCOLL.VFS;
 
 package body Alire.OS_Lib.Download is
 
@@ -16,13 +15,11 @@ package body Alire.OS_Lib.Download is
                   Folder   : Directory_Path)
                   return Outcome
    is
-      use GNATCOLL.VFS;
-
       Archive_File : constant Directory_Path :=
                        Folder / Ada.Directories.Simple_Name (Filename);
    begin
       Trace.Debug ("Creating folder: " & Folder);
-      Create (+Folder).Make_Dir;
+      Directories.Create_Tree (Folder);
 
       Trace.Detail ("Downloading file: " & URL);
 

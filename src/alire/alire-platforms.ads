@@ -83,6 +83,10 @@ package Alire.Platforms with Preelaborate is
 
    type Shells is (Unix, PowerShell, WinCmd);
 
+   --  Portable platform-related tools
+
+   function On_Windows return Boolean;
+
 private
 
    --  Should be in sync with testsuite/drivers/helpers.py#L106

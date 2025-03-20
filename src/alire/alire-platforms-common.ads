@@ -1,8 +1,6 @@
 with Alire.OS_Lib;
 
-private with GNATCOLL.OS.Constants;
-
-private package Alire.Platforms.Common is
+package Alire.Platforms.Common is
 
    --  Reusable code from both Linux/macOS or other several OSes. Intended for
    --  use from the platform-specific bodies.
@@ -11,9 +9,6 @@ private package Alire.Platforms.Common is
 
    function Machine_Hardware_Name return Architectures;
    --  As reported by uname, already turned into our architecture enum
-
-   function On_Windows return Boolean;
-   --  Says if we are on Windows
 
    ---------------------
    -- Unix_Home_Folder --
@@ -49,16 +44,5 @@ private package Alire.Platforms.Common is
          ("XDG_CONFIG_HOME",
           Default => Unix_Home_Folder / ".config")
        / "alire");
-
-private
-
-   ----------------
-   -- On_Windows --
-   ----------------
-
-   pragma Warnings (Off, "condition is always"); -- Silence warning of OS check
-   function On_Windows return Boolean
-   is (GNATCOLL.OS.Constants.OS in GNATCOLL.OS.Windows);
-   pragma Warnings (On);
 
 end Alire.Platforms.Common;

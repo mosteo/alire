@@ -1,5 +1,3 @@
-with GNAT.OS_Lib;
-
 package body Alire.OS_Lib is
 
    ---------
