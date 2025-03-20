@@ -23,8 +23,6 @@ with Alire.VCSs.Git;
 with Alire.Utils;
 with Alire.Utils.TTY;
 
-with GNATCOLL.VFS;
-
 with TOML;
 use type TOML.Any_Value_Kind, TOML.TOML_Value;
 
@@ -533,8 +531,6 @@ package body Alire.TOML_Index is
                             Rel  : Releases.Release)
    is
       use all type Origins.Kinds;
-      use GNATCOLL;
-      use all type VFS.Filesystem_String;
       Fixed : Releases.Release := Rel;
    begin
       --  Adjust and check a valid path for a local origin.

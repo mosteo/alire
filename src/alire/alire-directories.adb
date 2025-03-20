@@ -10,7 +10,6 @@ with Alire.OS_Lib.Subprocess;
 with Alire.Paths;
 with Alire.Platforms.Current;
 with Alire.Platforms.Folders;
-with Alire.VFS;
 with Alire.Utils;
 
 with Den.Filesystem;
@@ -18,8 +17,6 @@ with Den.Iterators;
 with Den.Walk;
 
 with GNAT.String_Hash;
-
-with GNATCOLL.VFS;
 
 with Interfaces;
 
@@ -149,9 +146,11 @@ package body Alire.Directories is
    -----------------
 
    procedure Create_Tree (Path : Any_Path) is
-      use GNATCOLL.VFS;
    begin
-      Make_Dir (Create (+Path));
+      Den.Filesystem.Create_Directory
+        (Den.Scrub (Path),
+         Options => (Create_Intermediate => True,
+                     others => <>));
    end Create_Tree;
 
    ------------------------
@@ -254,53 +253,6 @@ package body Alire.Directories is
 
    procedure Force_Delete (Path : Absolute_Path) is
       use Ada.Directories;
-      use GNATCOLL.VFS;
-
-      procedure Delete_Links is
-         procedure Delete_Links (Path : Absolute_Path) is
-            Contents : File_Array_Access :=
-                         VFS.New_Virtual_File (Path).Read_Dir;
-         begin
-            for Item of Contents.all loop
-               if Item.Is_Symbolic_Link then
-                  --  Delete it here and now before normalization, as after
-                  --  normalization links are resolved and the original link
-                  --  name is lost.
-                  declare
-                     Deleted : Boolean := False;
-                     Target  : constant Virtual_File :=
-                                 VFS.New_Virtual_File (+Item.Full_Name);
-                  begin
-                     Target.Normalize_Path (Resolve_Symlinks => True);
-                     Item.Delete (Deleted);
-                     if Deleted then
-                        Trace.Debug ("Deleted softlink: "
-                                     & Item.Display_Full_Name
-                                     & " --> "
-                                     & Target.Display_Full_Name);
-                     else
-                        --  Not deleting a link is unsafe, as it may point
-                        --  outside the target tree. Fail in this case.
-                        Raise_Checked_Error
-                          ("Failed to delete softlink: "
-                           & Item.Display_Full_Name);
-                     end if;
-                  end;
-               elsif Item.Is_Directory
-                 and then Item.Display_Base_Name not in "." | ".."
-               then
-                  Delete_Links (+Item.Full_Name);
-               end if;
-            end loop;
-
-            Unchecked_Free (Contents);
-         end Delete_Links;
-
-      begin
-         if Adirs.Exists (Path) then
-            Delete_Links (Path);
-         end if;
-      end Delete_Links;
 
       ----------------------
       -- Report_Remaining --
@@ -351,12 +303,7 @@ package body Alire.Directories is
          elsif Kind (Path) = Directory then
             Trace.Debug ("Deleting folder " & Path & "...");
             Ensure_Deletable (Path);
-            Delete_Links;
-            --  By first deleting any softlinks, we ensure that the remaining
-            --  tree is safe to delete, that no malicious link is followed
-            --  outside the target tree, and that broken/recursive links
-            --  confuse the tree removal procedure.
-            Adirs.Delete_Tree (Path);
+            Den.Filesystem.Delete_Tree (Den.Scrub (Path));
          else
             Raise_Checked_Error ("Cannot delete special file:" & Path);
          end if;

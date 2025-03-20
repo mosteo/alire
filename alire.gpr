@@ -8,7 +8,7 @@ with "clic";
 with "den";
 with "dirty_booleans";
 with "diskflags";
-with "gnatcoll";
+with "json";
 with "lml";
 with "minirest";
 with "optional";
