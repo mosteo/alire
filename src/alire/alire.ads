@@ -78,6 +78,11 @@ package Alire with Preelaborate is
       with Static_Predicate => Crate_Character in
          'a' .. 'z' | '0' .. '9' | '_';
 
+   subtype UTF_8_String is String;
+   --  Just to make clear where an UTF_8 string is explicitly expected in
+   --  legacy code; going forward use Wide_Wide_String to avoid any possible
+   --  encoding error.
+
    --------------------
    --  Crate Naming  --
    --------------------
@@ -380,5 +385,8 @@ private
                Output_BOM : Boolean := False)
                return Ada.Strings.UTF_Encoding.UTF_8_String
                renames Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode;
+
+   function W (S : UTF_8_String) return Wide_Wide_String
+               renames Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Decode;
 
 end Alire;

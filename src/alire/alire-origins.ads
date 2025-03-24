@@ -97,7 +97,7 @@ package Alire.Origins is
 
    function Is_Monorepo (This : Origin) return Boolean;
 
-   function Path (This : Origin) return String
+   function Path (This : Origin) return Any_Path
      with Pre => This.Kind = Filesystem;
 
    function Archive_URL (This : Origin) return Alire.URL

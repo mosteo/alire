@@ -3,12 +3,9 @@ with AAA.Strings; use AAA.Strings;
 with Alire.OS_Lib.Subprocess;
 with Alire.Errors;
 
-with GNATCOLL.JSON;
-
 package body Alire.Origins.Deployers.System.Homebrew is
 
    --  Ada.Strings.Unbounded is use-visible via Alire.Origins.
-   use GNATCOLL.JSON;
 
    package Subprocess renames Alire.OS_Lib.Subprocess;
 

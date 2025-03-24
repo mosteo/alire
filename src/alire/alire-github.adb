@@ -8,10 +8,9 @@ with Alire.URI;
 with Alire.Utils.TTY;
 with Alire.Version;
 
-with GNATCOLL.JSON.Utility;
-with GNATCOLL.Strings;
-
 with Minirest;
+
+with Yeison_Utils;
 
 package body Alire.GitHub is
 
@@ -37,13 +36,15 @@ package body Alire.GitHub is
    -- JSON_Escape --
    -----------------
 
-   function JSON_Escape (S : String) return String
-   is
-      use GNATCOLL;
-      X : constant Strings.XString := Strings.To_XString (S);
-   begin
-      return +GNATCOLL.JSON.Utility.Escape_String (X);
-   end JSON_Escape;
+   function JSON_Escape (S : UTF_8_String) return UTF_8_String
+   is (U (Yeison_Utils.JSON_Escape (Yeison_Utils.Decode (S))));
+
+   -------------
+   -- To_JSON --
+   -------------
+
+   function To_JSON (S : UTF_8_String) return JSON_Value
+   is (LML.Input.JSON.From_String (W (S)));
 
    --------------
    -- API_Call --
@@ -150,7 +151,7 @@ package body Alire.GitHub is
                       Kind   : Kinds := GET;
                       Token  : String := OS_Lib.Getenv (Env_GH_Token, "");
                       Error  : String := "GitHub API call failed")
-                      return GNATCOLL.JSON.JSON_Value
+                      return JSON_Value
    is
       Response : constant Minirest.Response
         := API_Call (Proc   => Proc,
@@ -159,7 +160,7 @@ package body Alire.GitHub is
                      Token  => Token);
    begin
       if Response.Succeeded then
-         return GNATCOLL.JSON.Read (Response.Content.Flatten (""));
+         return To_JSON (Response.Content.Flatten (""));
       else
          Raise_Checked_Error
            (Errors.New_Wrapper
@@ -202,6 +203,7 @@ package body Alire.GitHub is
    is
    begin
       return
+        Natural (
         API_Call
           (Kind  => POST,
            Token => Token,
@@ -214,7 +216,8 @@ package body Alire.GitHub is
            and "head"  = User & ":" & Head_Branch
            and "draft" = Draft
            and "maintainer_can_modify" = Maintainer_Can_Modify)
-        .Get ("number").Get;
+        .Reference ("number").As_Int
+        );
    end Create_Pull_Request;
 
    ---------------
@@ -222,7 +225,7 @@ package body Alire.GitHub is
    ---------------
 
    function Get_Pulls (Args : Minirest.Parameters)
-                       return GNATCOLL.JSON.JSON_Value
+                       return JSON_Value
    is
    begin
       return
@@ -240,7 +243,7 @@ package body Alire.GitHub is
    -----------------------
 
    function Find_Pull_Request (M : Milestones.Milestone)
-                               return GNATCOLL.JSON.JSON_Value
+                               return JSON_Value
    is (Get_Pulls ("state" = "all"
               and "head"  = User_Info.User_GitHub_Login & ":"
                             & Publish.Branch_Name (M)));
@@ -250,7 +253,7 @@ package body Alire.GitHub is
    -----------------------
 
    function Find_Pull_Request (Number : Natural)
-                               return GNATCOLL.JSON.JSON_Value
+                               return JSON_Value
    is (API_Call
          ("repos"
           / Index.Community_Organization
@@ -264,7 +267,7 @@ package body Alire.GitHub is
    -- Find_Pull_Requests --
    ------------------------
 
-   function Find_Pull_Requests return GNATCOLL.JSON.JSON_Value
+   function Find_Pull_Requests return JSON_Value
    is (Get_Pulls ("state" = "open"
               and "head"  = User_Info.User_GitHub_Login));
 
@@ -273,7 +276,7 @@ package body Alire.GitHub is
    -------------
 
    procedure Comment (Number : Natural; Text : String) is
-      Unused : constant GNATCOLL.JSON.JSON_Value
+      Unused : constant JSON_Value
         := API_Call
           ("repos"
            / Index.Community_Organization
@@ -293,7 +296,7 @@ package body Alire.GitHub is
 
    procedure Close (Number : Natural; Reason : String) is
       use AAA.Strings;
-      Unused : constant GNATCOLL.JSON.JSON_Value
+      Unused : constant JSON_Value
         := API_Call ("repos"
                      / Index.Community_Organization
                      / Index.Community_Repo_Name
@@ -325,7 +328,7 @@ package body Alire.GitHub is
       Start : constant Time := Clock;
       Next  : Time := Start + 1.0;
 
-      Unused : constant GNATCOLL.JSON.JSON_Value
+      Unused : constant JSON_Value
         := API_Call ("repos" / Owner / Repo / "forks",
                      Kind  => POST,
                      Token => Token,
@@ -434,10 +437,9 @@ package body Alire.GitHub is
                        & JSON_Escape (Replace (Mutation, "PRID", Node_ID))
                        & "}");
 
-      use GNATCOLL.JSON;
    begin
       if not Response.Succeeded or else
-        Read (Response.Content.Flatten ("")).Has_Field ("errors")
+        To_JSON (Response.Content.Flatten ("")).Has_Key ("errors")
       then
          Raise_Checked_Error
            (Errors.New_Wrapper

@@ -170,7 +170,7 @@ package body Alire.Origins is
    -- Path --
    ----------
 
-   function Path (This : Origin) return String is (+This.Data.Path);
+   function Path (This : Origin) return Any_Path is (+This.Data.Path);
 
    -----------------
    -- Archive_URL --

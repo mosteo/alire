@@ -12,8 +12,6 @@ with Alire.URI;
 
 with GNAT.OS_Lib;
 
-with GNATCOLL.VFS;
-
 with TOML.File_IO;
 
 package body Alire.Index_On_Disk is
@@ -48,14 +46,12 @@ package body Alire.Index_On_Disk is
    -----------------------
 
    function Add_With_Metadata (This : Index'Class) return Outcome is
-      use GNATCOLL.VFS;
-
       Dst : Directories.Temp_File :=
               Directories.With_Name
-                (+Create (+This.Metadata_Directory).Full_Name);
+                (Directories.Full_Name (This.Metadata_Directory));
    begin
       --  Create containing folder with its metadata
-      Create (+This.Metadata_Directory).Make_Dir;
+      Directories.Create_Tree (This.Metadata_Directory);
       Assert (This.Write_Metadata (This.Metadata_File));
 
       --  Deploy the index contents
@@ -180,12 +176,11 @@ package body Alire.Index_On_Disk is
       ---------------------------
 
       function Is_Valid_Local_Origin (Path : String) return Boolean is
-         use GNATCOLL.VFS;
-         Dir : constant Virtual_File := Create (+Path);
+         Dir : constant Absolute_Path := Directories.Full_Name (Path);
       begin
          --  Ensure the path exists and is a directory
 
-         if not Dir.Is_Directory then
+         if not Directories.Is_Directory (Dir) then
             Result := Outcome_Failure ("Not a readable directory: " & Path);
             return False;
          end if;

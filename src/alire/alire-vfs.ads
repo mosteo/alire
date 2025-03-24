@@ -1,5 +1,3 @@
-with Ada.Containers.Vectors;
-
 with Alire.Directories;
 private with Alire.OS_Lib;
 

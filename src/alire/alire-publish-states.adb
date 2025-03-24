@@ -11,9 +11,12 @@ with AnsiAda;
 
 with CLIC.User_Input;
 
-with GNATCOLL.JSON;
+with Yeison_12;
 
 package body Alire.Publish.States is
+
+   package Yeison renames Yeison_12;
+   subtype JSON_Value is Yeison.Any;
 
    use URI.Operators;
 
@@ -76,15 +79,15 @@ package body Alire.Publish.States is
    -- To_Status --
    ---------------
 
-   function To_Status (Info : GNATCOLL.JSON.JSON_Value) return PR_Status
+   function To_Status (Info : Yeison.Any) return PR_Status
    is
    begin
-      if Info.Is_Empty then
+      if Info.Is_Nil or else Info.Is_Empty then
          return (Exists => False);
       end if;
 
       declare
-         Number  : constant Natural := Info.Get (Key.Number);
+         Number  : constant Natural := Natural (Info (Key.Number).As_Int);
 
          -------------------
          -- Needs_Changes --
@@ -95,18 +98,17 @@ package body Alire.Publish.States is
                         Simple_Logging.Activity
                           ("Retrieving reviews for PR" & Number'Image)
                           with Unreferenced;
-            use GNATCOLL.JSON;
-            Reviews : constant JSON_Array := GitHub.Reviews (Number).Get;
+            Reviews : constant Yeison.Vec := GitHub.Reviews (Number);
 
             --  Reviews pile up and only the last one of each reviewer is
             --  important, so we have to keep track of reviewers seen.
             Reviewers : AAA.Strings.Map;
 
          begin
-            for I in 1 .. Length (Reviews) loop
+            for I in 1 .. Natural (Reviews.Length) loop
                Reviewers.Include
-                 (Get (Reviews, I).Get (Key.User).Get (Key.Login),
-                  Get (Reviews, I).Get (Key.State));
+                 (U (Reviews (I) (Key.User) (Key.Login).As_Text),
+                  U (Reviews (I) (Key.State).As_Text));
             end loop;
 
             if (for some Review of Reviewers =>
@@ -133,28 +135,28 @@ package body Alire.Publish.States is
                         Simple_Logging.Activity
                           ("Retrieving checks for PR" & Number'Image)
                           with Unreferenced;
-            use GNATCOLL.JSON;
-            Checks : constant JSON_Array
-              := GitHub.Checks (SHA).Get ("workflow_runs");
+            Checks : constant Yeison.Vec
+              := GitHub.Checks (SHA) ("workflow_runs");
 
             Some_Incomplete : Boolean := False;
          begin
-            if Length (Checks) = 0 then
+            if Checks.Length = 0 then
                return Checks_Ongoing;
             end if;
 
-            for I in 1 .. Length (Checks) loop
+            for I in 1 .. Natural (Checks.Length) loop
                declare
-                  Check      : constant JSON_Value := Get (Checks, I);
+                  Check      : constant JSON_Value := Checks (I);
                   Conclusion : constant Conclusions
                     := (if not Check.Has_Field (Key.Conclusion)
-                           or else Check.Get (Key.Conclusion).Is_Empty
+                           or else Check (Key.Conclusion).Is_Nil
                         then
-                           Pending
-                        elsif not Is_Valid (Check.Get (Key.Conclusion)) then
                            Unknown
+                        elsif Check (Key.Conclusion).Is_Empty then
+                           Pending
                         else
-                           Conclusions'Value (Check.Get (Key.Conclusion)));
+                           Conclusions'Value
+                             (U (Check (Key.Conclusion).As_Text)));
                begin
                   case Conclusion is
                      when Failure | Cancelled | Timed_Out =>
@@ -177,28 +179,29 @@ package body Alire.Publish.States is
       begin
          return
            (Exists  => True,
-            Branch  => +Info.Get (Key.Head).Get (Key.Label),
+            Branch  => +U (Info (Key.Head) (Key.Label).As_Text),
             Number  => Number,
-            Node_ID => +Info.Get (Key.Node_ID),
-            Title   => +Info.Get (Key.Title),
+            Node_ID => +U (Info (Key.Node_ID).As_Text),
+            Title   => +U (Info (Key.Title).As_Text),
             Status  => (if Info.Has_Field (Key.Merged) and then
-                           Info.Get (Key.Merged)
+                           Info (Key.Merged).As_Bool
                         then
                            Merged
-                        elsif Matches (Info.Get (Key.State), Val.Closed) then
+                        elsif Matches (Info (Key.State).As_UTF_8, Val.Closed)
+                        then
                            Rejected
                         elsif Needs_Changes then
                            Changes_Requested
                         else
-                          (case Checks_Status (Info.Get (Key.Head)
-                                                   .Get (Key.SHA))
+                          (case Checks_Status
+                                  (Info (Key.Head) (Key.SHA).As_UTF_8)
                            is
                               when Checks_Ongoing =>
                                 Checks_Ongoing,
                               when Checks_Failed  =>
                                 Checks_Failed,
                               when Checks_Passed =>
-                               (if Info.Get (Key.Draft) then
+                               (if Info (Key.Draft).As_Bool then
                                    Checks_Passed
                                 else
                                    Under_Review)))

@@ -544,7 +544,7 @@ package body Alire.TOML_Index is
       begin
          if Origin.Kind = Filesystem then
             if not Origins.Deployers.Filesystem.Is_Valid_Local_Crate
-              (VFS.Create (+Origin.Path))
+              (Origin.Path)
             then
                raise Constraint_Error with -- not an expected error in an index
                  ("Local origin path is not a valid directory: "
