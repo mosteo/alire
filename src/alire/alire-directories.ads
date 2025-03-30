@@ -22,6 +22,8 @@ package Alire.Directories is
       function "/" (L, R : String) return String renames OS_Lib."/";
    end Operators;
 
+   subtype Kinds is Den.Kinds;
+
    procedure Backup_If_Existing (File     : Any_Path;
                                  Base_Dir : Any_Path := "");
    --  If File exists, copy to file.prev. If Base_Dir /= "", it is instead
@@ -80,7 +82,7 @@ package Alire.Directories is
    function Exists (Path : Any_Path) return Boolean;
    --  Path designates something, be it file, dir or symbolic link
 
-   function Kind (Path : Any_Path) return Den.Kinds;
+   function Kind (Path : Any_Path) return Kinds;
 
    function Is_Directory (Path : Any_Path) return Boolean;
    --  Returns false for non-existing paths too
