@@ -8,6 +8,15 @@ package Alire.Settings.Builtins is
    -- Builtins --
    --------------
 
+   --  ALIRE
+
+   Alire_Test_Crate : constant Builtin := New_Builtin
+     (Key    => "alire.test_crate",
+      Def    => False,
+      Public => False,
+      Help   =>
+        "When true, running `alr test` will cd into the parent crate.");
+
    --  CACHE
 
    Cache_Dir : constant Builtin := New_Builtin

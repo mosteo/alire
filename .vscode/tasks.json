@@ -4,18 +4,14 @@
 		{
 			"type": "shell",
 			"command": "gprbuild -j0 -p -P alr_env.gpr",
-			"problemMatcher": [
-				"$ada"
-			],
+			"problemMatcher": [ "$ada" ],
 			"label": "Alire: Build alr",
 			"group": "build"
 		},
 		{
 			"type": "shell",
 			"command": "gprbuild -ws -c -f -s -u -P alr_env.gpr ${file}",
-			"problemMatcher": [
-				"$ada"
-			],
+			"problemMatcher": [ "$ada" ],
 			"label": "Alire: Compile current file",
 			"group": "build"
 		},
