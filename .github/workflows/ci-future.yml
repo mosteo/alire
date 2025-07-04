@@ -1,0 +1,92 @@
+name: CI self stable
+# Build Alire with `alr build` using the latest stable release, to ensure
+# that the latest stable release is able to build the next version. This one is
+# less exhaustive than the ci-toolchain.yml, as it does not test all
+# conceivable toolchains, just the latest stable one.
+
+on:
+  pull_request:
+    paths-ignore:
+      - 'doc/**'
+      - '**.md'
+      - '**.rst'
+      - '**.txt'
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  build:
+
+    name: ${{ matrix.os }}
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-13         # macOS x86_64
+          - macos-latest     # macOS arm64
+          - ubuntu-24.04-arm # Ubuntu arm64
+          - ubuntu-latest    # Ubuntu x86_64
+          - windows-latest   # Windows x86_64
+
+    steps:
+    - name: Check out
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    # Download the latest stable release of alr
+    - name: Download latest stable alr
+      uses: alire-project/setup-alire@v5
+      with:
+        branch: bugfix/2.1
+        # This is the critical parameter. Once v2.1.1 is tagged, use it.
+
+    # We can start using the alr we just built
+
+    - name: Show builder alr configuration
+      run: |
+        alr -d -n version
+        alr --version
+
+    - name: Update dependencies
+      run: alr -d -n -f update
+      # Force because otherwise solving may time out in non-interactive mode
+
+    - name: Show dependencies/pins
+      run: |
+        alr -d -n -q with --solve || alr -n -v -d with --solve
+        alr -d -n -q with --tree
+
+    - name: Show build environment, with debug fallback
+      run: alr -d -n printenv || alr -n -v -d printenv
+
+    - name: SELF-BUILD
+      run: alr -d -n build
+
+    - name: Show built version
+      run: ./bin/alr -d -n version
+
+    # Run the testsuite with the just build alr. The testsuite picks the proper
+    # alr in the ./bin/alr location.
+
+    - name: Install Python 3.x # required by testsuite
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Install e3
+      run: pip install --upgrade -r testsuite/requirements.txt
+
+    - name: Run Python testsuite # But ensure a new alr is not build
+      run: scripts/ci-github.sh build=false
+
+    # Enable once Alire 3.0 is out
+    - name: Run Ada testsuite
+      if: false
+      run: alr -d -n test

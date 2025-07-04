@@ -6,7 +6,8 @@ trap 'echo "Interrupted" >&2 ; exit 1' INT
 set -o errexit
 set -o nounset
 
-export PATH+=:${PWD}/bin
+# Put build alr in front
+export PATH=${PWD}/bin:$PATH
 
 # Import reusable bits
 pushd "$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
