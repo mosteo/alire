@@ -43,6 +43,7 @@ with Alr.Commands.Run;
 with Alr.Commands.Search;
 with Alr.Commands.Settings;
 with Alr.Commands.Show;
+with Alr.Commands.Sync;
 with Alr.Commands.Test;
 with Alr.Commands.Toolchain;
 with Alr.Commands.Update;
@@ -334,15 +335,19 @@ package body Alr.Commands is
    -- Requires_Workspace --
    ------------------------
 
-   procedure Requires_Workspace (Cmd   : in out Command'Class;
-                                 Sync  : Boolean := True;
-                                 Error : String  := "") is
+   procedure Requires_Workspace (Cmd     : in out Command'Class;
+                                 Sync    : Boolean := True;
+                                 Minimal : Boolean := False;
+                                 Error   : String  := "") is
       use Alire;
 
       Unchecked : Alire.Roots.Optional.Root renames Cmd.Optional_Root;
 
       Manual_Only : constant Boolean :=
-                      Alire.Settings.Builtins.Update_Manually_Only.Get;
+                      Alire.Settings.Builtins.Update_Manually_Only.Get and then
+                          Cmd not in Commands.Sync.Command'Class;
+      --  Sync command is intrinsically manual already, so in that case we must
+      --  perform the sync.
 
       package Conf renames Alire.Settings;
    begin
@@ -359,14 +364,15 @@ package body Alr.Commands is
       --  user for its preference at this time. We also don't ask during `alr
       --  printenv`, whose output is likely being redirected.
 
-      if Cmd not in Commands.Toolchain.Command'Class and then
+      if not Minimal and then
+        Cmd not in Commands.Toolchain.Command'Class and then
         Cmd not in Commands.Printenv.Command'Class and then
         Alire.Toolchains.Assistant_Enabled
       then
          Alire.Toolchains.Assistant (Conf.Global, First_Run => True);
       end if;
 
-      Trace.Debug ("Workspace is being checked and loaded for the first time");
+      Trace.Debug ("Workspace is being loaded and synced for the first time");
 
       Unchecked := Alire.Root.Current;
 
@@ -398,7 +404,7 @@ package body Alr.Commands is
 
                if Manual_Only then
                   Trace.Detail
-                    ("Skipping automatic dependency update"
+                    ("Skipping automatic dependency sync"
                      & " per configuration setting.");
                   return;
                end if;
@@ -409,10 +415,30 @@ package body Alr.Commands is
                   --  requested, we need to generate a proper solution anyway.
 
                   if Checked.Solution.Is_Attempted then
-                     --  Check deps on disk match those in lockfile
-                     Checked.Sync_From_Manifest (Silent   => False,
-                                                 Interact => False);
+                     declare
+                        Old_Sol : constant Alire.Solutions.Solution
+                          := Checked.Solution;
+                     begin
+                        --  Check deps on disk match those in lockfile
+                        Checked.Sync_From_Manifest (Silent   => False,
+                                                    Interact => False);
+                        if Old_Sol.Is_Complete and then
+                          not Checked.Solution.Is_Complete
+                        then
+                           if Cmd not in Commands.Sync.Command'Class then
+                              Print_Failed_Sync;
+                           end if;
+                        elsif not Old_Sol.Is_Complete and then
+                          not Checked.Solution.Is_Complete
+                        then
+                           Put_Warning ("Workspace solution is incomplete.");
+                        end if;
+                     end;
                      return;
+                  else
+                     null;
+                     --  We have never solved this workspace, so a fresh
+                     --  solution is needed. This solution is computed below.
                   end if;
 
                else
@@ -438,6 +464,9 @@ package body Alr.Commands is
                  ("Workspace has no lockfile at " & Checked.Lock_File);
          end case;
 
+         --  At this point, there is not a valid lockfile in place; it was
+         --  either missing or broken, so keep that in mind for the following.
+
          Trace.Debug ("Generating lockfile on the fly...");
 
          --  Update current root dependencies to create a complete lock file.
@@ -459,13 +488,13 @@ package body Alr.Commands is
          end if;
 
          --  If Syncing has not been requested (because a manual sync is
-         --  upcoming) we are done. Otherwise, do a silent update.
+         --  upcoming) we are done. Otherwise, do a silent sync.
 
          if Sync then
             Checked.Sync_From_Manifest (Silent   => False,
                                         Interact => False,
                                         Force    => True);
-            --  As we just created the empty lockfile, we force the update
+            --  As we just created the empty lockfile, we force the sync
          end if;
       end;
    end Requires_Workspace;
@@ -757,6 +786,17 @@ package body Alr.Commands is
       end if;
    end To_Boolean;
 
+   -----------------------
+   -- Print_Failed_Sync --
+   -----------------------
+
+   procedure Print_Failed_Sync is
+   begin
+      Put_Error ("Synchronization failed due to conflicting changes.");
+      Put_Error ("Adjust your dependencies in `alire.toml` and try again or");
+      Put_Error ("run `alr update` to compute a new solution from scratch");
+   end Print_Failed_Sync;
+
 begin
 
    -- Commands --
@@ -781,6 +821,7 @@ begin
    Sub_Cmd.Register ("Crate", new Pin.Command);
    Sub_Cmd.Register ("Crate", new Printenv.Command);
    Sub_Cmd.Register ("Crate", new Run.Command);
+   Sub_Cmd.Register ("Crate", new Sync.Command);
    Sub_Cmd.Register ("Crate", new Update.Command);
    Sub_Cmd.Register ("Crate", new Withing.Command);
 

@@ -61,14 +61,16 @@ package Alr.Commands is
    --  Unless Force_Reload, if the index is not empty we no nothing. When
    --  strict, don't allow unknown values in enums.
 
-   procedure Requires_Workspace (Cmd   : in out Command'Class;
-                                 Sync  : Boolean := True;
-                                 Error : String := "");
+   procedure Requires_Workspace (Cmd     : in out Command'Class;
+                                 Sync    : Boolean := True;
+                                 Minimal : Boolean := False;
+                                 Error   : String  := "");
    --  Verifies that a valid workspace is in scope. After calling it,
    --  Cmd.Root will be usable if alr was run inside a Root. If Sync, enforce
    --  that the manifest, lockfile and dependencies on disk are in sync, by
    --  performing a silent update. If not Sync, only a minimal empty lockfile
    --  is created. If Error, replace the first generic error message with it.
+   --  When minimal, automatic steps like toolchain selection won't take place.
 
    procedure Forbids_Structured_Output (Cmd : in out Command'Class);
    --  Use this to mark that the output of a command is not (yet) compatible
@@ -177,5 +179,7 @@ private
    --  default otherwise. If not a valid boolean or empty, raise Checked_Error
    --  with an appropriate error message. NOTE: If the switch exists (is not
    --  unset) but has no argument, it's considered TRUE, not default.
+
+   procedure Print_Failed_Sync;
 
 end Alr.Commands;
