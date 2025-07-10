@@ -58,7 +58,12 @@ package body Alire.Roots.Editable is
 
          --  Compute the new solution
 
-         Edited.Set (Solution => Edited.Compute_Update);
+         --  TODO: if the update doesn't succeed with Sync_Only, ask to fall
+         --  back with updating any dependency. Otherwise, editing by hand
+         --  works differently to using `alr with`, and if we don't allow
+         --  to update, suddenly adding a dependency with `alr with` may
+         --  be impossible.
+         Edited.Set (Solution => Edited.Compute_Update (Sync_Only => False));
 
          --  Then show the effects on the solution
 
