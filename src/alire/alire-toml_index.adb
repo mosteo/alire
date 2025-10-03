@@ -203,20 +203,20 @@ package body Alire.TOML_Index is
                           & ") is newer than that expected by alr ("
                           & Alire.Index.Version.Image & ")."
                           & " You may have to update alr");
-            elsif Loading_Index_Version < Alire.Index.Min_Compatible_Version
+            elsif Loading_Index_Version < Alire.Index.Min_Version
             then
                Set_Error
                  (Result, Filename,
                   "index version (" & Loading_Index_Version.Image
                   & ") is too old. The minimum compatible version is "
-                  & Alire.Index.Min_Compatible_Version.Image & Latin_1.LF
+                  & Alire.Index.Min_Version.Image & ASCII.LF
                   & (if Index.Name = Alire.Index.Community_Name then
                        " Resetting the community index ("
                        & TTY.Terminal ("alr index --reset-community")
-                       & ") may solve the issue. " & Latin_1.LF
+                       & ") may solve the issue. " & ASCII.LF
                     else
                        " Updating your local index might solve the issue "
-                       & "(alr index --update-all). " & Latin_1.LF
+                       & "(alr index --update-all). " & ASCII.LF
                        & "Otherwise, remove the " & "index with name '"
                        & TTY.Emph (Index.Name)
                        & "' (alr index --del " & Index.Name & ")"));

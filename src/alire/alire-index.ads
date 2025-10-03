@@ -1,3 +1,5 @@
+private with AAA.Strings;
+
 private with Alire_Early_Elaboration;
 pragma Elaborate_All (Alire_Early_Elaboration);
 pragma Unreferenced (Alire_Early_Elaboration);
@@ -16,9 +18,10 @@ with Semantic_Versioning.Extended;
 
 package Alire.Index is
 
-   Community_Branch : constant String := "stable-1.4.0";
-   --  The branch used for the community index. Must be updated when new index
-   --  features are introduced.
+   Community_Branch : constant String;
+   --  The branch used for the community index. It's built from the index
+   --  version defined in the private part, which matches the last Alire
+   --  version that introduced changes to the index format.
 
    Community_Host : constant String := Settings.Builtins.Index_Host.Get;
 
@@ -49,18 +52,50 @@ package Alire.Index is
      and then Branch_String (Branch_String'Last) /= '-'
      and then (for some C of Branch_String => C = '-');
 
-   Min_Compatible_Version : constant Semantic_Versioning.Version;
-   --  Based on the constant defined in private section
+   Min_Version : constant Semantic_Versioning.Version;
+   --  Based on the constant defined in private section. This is the minimum
+   --  version of *Alire* that the index requires to be loaded. IOWs, is the
+   --  last Alire version in which *breaking changes* were introduced into the
+   --  index.
 
-   --  We store here the indexes we are able to load. As long as we do not
-   --  break back compatibility, we can keep on simply updating the minor value
+   Version     : constant Semantic_Versioning.Version;
+   --  Last version of *Alire* in which backwards-compatible changes
+   --  were introduced into the index. This is the version written to
+   --  "alire-version" in crate manifests and to index.toml in indexes. It
+   --  is also the version expected for the community index.
+
+   --  In practice, alr can load any index with `alire-version` >=
+   --  Min_Compatible_Version
+
+   --  Example for compatible index (newer compatible alr):
+   --    Index says alire-version = 3.5
+   --    Here index min_version   = 3.0
+   --    Here index version       = 4.0
+   --    Alire      version       = 4.5
+   --  In this case, a new (4.5) Alire knows the index has features introduced
+   --  in Alire 3.5, which is loadable since anything >= 3.0 is loadable.
+
+   --  Example for alr too old:
+   --    Index says alire-version = 3.0
+   --    Alire      version       = 2.1
+   --  The index might be compatible or not, depending on which features it
+   --  actually uses. Alr will warn that the index or manifest is for a more
+   --  recent version of alr, and do a best effor try to load.
+
+   --  Example for incompatible index (alr too new):
+   --    Index says alire-version = 2.0
+   --    Here index min_version   = 3.0
+   --    Here index version       = 3.0
+   --    Alire      version       = 3.1
+   --  In this case, the index is incompatible as breaking changes were
+   --  introduced with Alire 3.0. Despite Alire being >= 2.0 (requested by the
+   --  index). This means that index was loadable by Alire >=2.0 & <3.0. But,
+   --  obviously, indexes cannot know the future.
+
    Valid_Versions : constant Semantic_Versioning.Extended.Version_Set;
 
-   Version : constant Semantic_Versioning.Version;
-   --  The index version understood by alire must match the one in the indexes
-   --  being loaded.
-
-   Branch_Kind : constant String := AAA.Strings.Head (Community_Branch, "-");
+   Branch_Kind : constant String;
+   --  Either "stable" or "devel", built from info in the private part
 
    subtype Release is Alire.Releases.Release;
 
@@ -168,26 +203,40 @@ package Alire.Index is
 
 private
 
+   type Branch_Kinds is (Stable, Devel);
+
    --  The string constants for versions are kept in the private section to
    --  avoid using them in command output or other message. The only option
    --  is to use the Sementic_Versioning.Image function which will provide a
-   --  consistant output.
+   --  consistent output.
 
-   Min_Compatible_Version_Str : constant String := "1.1";
-   --  Update as needed in case of backward-incompatible changes
+   --  UPDATE ON BREAKING CHANGES
+   Min_Version_Str : constant String := "1.1";
 
-   Max_Compatible_Version_Str : constant String :=
-                              AAA.Strings.Tail (Community_Branch, '-');
+   --  UPDATE ON INCREMENTAL CHANGES
+   Version_Str : constant String := "1.4";
+   --  3.0: introduces `alire-version` property
 
-   Min_Compatible_Version : constant Semantic_Versioning.Version :=
-     Semantic_Versioning.New_Version (Min_Compatible_Version_Str);
+   --  UPDATE TO SWITCH BETWEEN "devel-" and "stable-" BRANCHES
+   Kind : constant Branch_Kinds := Stable;
+
+   Min_Version : constant Semantic_Versioning.Version :=
+                   Semantic_Versioning.New_Version (Min_Version_Str);
+
+   Version : constant Semantic_Versioning.Version :=
+               Semantic_Versioning.New_Version (Version_Str);
 
    Valid_Versions : constant Semantic_Versioning.Extended.Version_Set :=
                         Semantic_Versioning.Extended.Value
-                          ("^" & Min_Compatible_Version_Str
-                           & " & <=" & Max_Compatible_Version_Str);
+                          (">=" & Min_Version.Image
+                           & " & <=" & Version.Image);
 
-   Version : constant Semantic_Versioning.Version :=
-     Semantic_Versioning.New_Version (Max_Compatible_Version_Str);
+   Branch_Kind : constant String := AAA.Strings.To_Lower_Case (Kind'Image);
+
+   Community_Branch : constant String :=
+                        Branch_Kind
+                        & "-"
+                        & Version.Image;
+   --  E.g., stable-3.0.0
 
 end Alire.Index;

@@ -1,7 +1,7 @@
 Log of breaking changes in index or alr. Future versions are as of today and
 may change.
 
-### alr 3.0.0 + index 1.5.0
+### alr 3.0.0 + index 3.0.0
 
 - alr: removed `ALR_CONFIG` environment variable.
 - alr: removed `alr config` command.
@@ -14,6 +14,8 @@ may change.
 - alr: quoting follows shell rules for `editor.cmd` and `alr run -a`
 - manifest: `licenses` now supports SPDX v3.0.0 syntax, with the exception that license and exception identifiers are still matched case-sensitively.
 - manifest: `licenses` now uses v3.24.0 of the SPDX License List.
+- alr: index versioning matches Alire versions to avoid double versioning and
+  minimize confusions.
 
 ### We are here
 
