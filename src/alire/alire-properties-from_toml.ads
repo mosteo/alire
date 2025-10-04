@@ -21,7 +21,7 @@ package Alire.Properties.From_TOML is
    subtype Property_Loader is Prop_Loader.Static_Loader;
 
    type Property_Keys is (Actions,
-                          Alire_Version,
+                          Alire_Version, -- In 3.0
                           Authors,
                           Auto_GPR_With,
                           Build_Profiles,
@@ -39,6 +39,7 @@ package Alire.Properties.From_TOML is
                           Maintainers,
                           Maintainers_Logins,
                           Metadata_Version,
+                          Mirror, -- In 3.0
                           Name,
                           Notes,
                           Project_Files,
@@ -116,6 +117,7 @@ package Alire.Properties.From_TOML is
                     Maintainers        => Multiple,
                     Maintainers_Logins => Multiple,
                     Metadata_Version   => Unique,
+                    Mirror             => Multiple,
                     Name               => Unique,
                     Notes              => Unique,
                     Project_Files      => Multiple,
@@ -182,7 +184,8 @@ package Alire.Properties.From_TOML is
       --  Future properties in 3.0 from this point on
       Alire_Version    |
       Future           |
-      Metadata_Version => Properties.Future.From_TOML'Access
+      Metadata_Version => Properties.Future.From_TOML'Access,
+      Mirror           => Properties.Future.From_TOML'Access
      );
    --  This loader applies to a normal release manifest
 
