@@ -359,7 +359,12 @@ package Alire.Releases is
 
    function Has_Property (R : Release; Key : String) return Boolean;
    --  Say if the property exists in any branch of the property tree. Key is
-   --  case-insensitive.
+   --  case-insensitive and in manifest format (not Ada format).
+
+   function Has_Property (R   : Release;
+                          Key : Alire.Properties.Labeled.Labels)
+                          return Boolean;
+   --  Specifically ask using a label, which is type-safer
 
    function Check_Caret_Warning (This : Release) return Boolean;
    --  Check if this release contains a ^0.x dependency, and warn about it.
@@ -408,6 +413,7 @@ private
    is new Interfaces.Yamlable
    with record
       Name         : Crate_Name (Prj_Len);
+      Alire_Version, -- Alire required to load its manifest
       Version      : Semantic_Versioning.Version;
       Origin       : Origins.Origin;
       Notes        : Description_String (1 .. Notes_Len);

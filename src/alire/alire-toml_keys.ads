@@ -6,6 +6,7 @@ package Alire.TOML_Keys with Preelaborate is
    Action_Type    : constant String := "type";
    Action_Command : constant String := "command";
    Action_Folder  : constant String := "directory";
+   Alire_Version  : constant String := "alire-version";
    Author         : constant String := "authors";
    Auto_GPR_With  : constant String := "auto-gpr-with";
    Available      : constant String := "available";

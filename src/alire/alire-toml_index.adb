@@ -107,8 +107,8 @@ package body Alire.TOML_Index is
                           Result : out Load_Result) is
       Filename : constant String := Dirs.Compose (Root, "index.toml");
       Value    : TOML.TOML_Value;
-      Old_Key  : constant String := "version";
-      Key      : constant String := "alire-version";
+      Old_Key  : constant String := TOML_Keys.Version;
+      Key      : constant String := TOML_Keys.Alire_Version;
       Suggest_Update : Boolean := False;
 
       use type Semantic_Versioning.Version;

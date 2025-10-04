@@ -92,9 +92,16 @@ package Alire.Index is
    --  index). This means that index was loadable by Alire >=2.0 & <3.0. But,
    --  obviously, indexes cannot know the future.
 
+   Default_Unknown_Version : constant Semantic_Versioning.Version;
+   --  For manifests that don't provide an alire version, we default to the
+   --  latest before introduction of this versioning.
+
    Valid_Versions : constant Semantic_Versioning.Extended.Version_Set;
 
-   Branch_Kind : constant String;
+   subtype Branch_Kind_Images is String with
+     Predicate => Branch_Kind = "stable" or else Branch_Kind = "devel";
+
+   Branch_Kind : constant Branch_Kind_Images;
    --  Either "stable" or "devel", built from info in the private part
 
    subtype Release is Alire.Releases.Release;
@@ -218,7 +225,10 @@ private
    --  3.0: introduces `alire-version` property
 
    --  UPDATE TO SWITCH BETWEEN "devel-" and "stable-" BRANCHES
-   Kind : constant Branch_Kinds := Stable;
+   Kind        : constant Branch_Kinds := Stable;
+
+   Branch_Kind : constant String :=
+                   AAA.Strings.To_Lower_Case (Kind'Image);
 
    Min_Version : constant Semantic_Versioning.Version :=
                    Semantic_Versioning.New_Version (Min_Version_Str);
@@ -231,12 +241,13 @@ private
                           (">=" & Min_Version.Image
                            & " & <=" & Version.Image);
 
-   Branch_Kind : constant String := AAA.Strings.To_Lower_Case (Kind'Image);
-
    Community_Branch : constant String :=
                         Branch_Kind
                         & "-"
                         & Version.Image;
    --  E.g., stable-3.0.0
+
+   Default_Unknown_Version : constant Semantic_Versioning.Version :=
+                               Semantic_Versioning.New_Version ("1.4.0");
 
 end Alire.Index;
