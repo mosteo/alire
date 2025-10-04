@@ -107,7 +107,8 @@ package body Alire.TOML_Index is
                           Result : out Load_Result) is
       Filename : constant String := Dirs.Compose (Root, "index.toml");
       Value    : TOML.TOML_Value;
-      Key      : constant String := "version";
+      Old_Key  : constant String := "version";
+      Key      : constant String := "alire-version";
       Suggest_Update : Boolean := False;
 
       use type Semantic_Versioning.Version;
@@ -149,27 +150,41 @@ package body Alire.TOML_Index is
             return "undefined";
       end Get_Local_Community_Branch;
 
+      Found_Key : UString; -- Either Key or Old_Key
    begin
       --  Read "index.toml"
 
       Value := TOML_Load.Load_File (Filename);
 
+      if Value.Has (Key) then
+         Found_Key := +Key;
+      elsif Value.Has (Old_Key) then
+         Found_Key := +Old_Key;
+         Put_Warning ("Field '" & Old_Key & "' in " & Filename & " is "
+                      & "deprecated, rename to '" & Key
+                      & "' to remove this warning.");
+      end if;
+
       --  Ensure metadata structure is as expected
 
-      if not Value.Has (Key) then
-         Set_Error (Result, Filename, "index metadata missing 'version' key");
-      elsif Value.Get (Key).Kind /= TOML.TOML_String then
+      if not Value.Has (Found_Key) then
          Set_Error (Result, Filename,
-                    "index version should hold a string, but found a "
-                    & Value.Get (Key).Kind'Img);
+                    "index metadata at " & Filename
+                    & " missing '" & Key & "' key");
+      elsif Value.Get (Found_Key).Kind /= TOML.TOML_String then
+         Set_Error (Result, Filename,
+                    Key & " in " & Filename
+                    & " should hold a string, but found a "
+                    & Value.Get (Found_Key).Kind'Img);
       elsif Value.Keys'Length /= 1 then
          Set_Error (Result, Filename,
-                    "index metadata contains unexpected fields, "
-                    & "only 'version' is expected");
+                    "index metadata in " & Filename
+                    & " contains unexpected fields, "
+                    & "only '" & Key & "' is expected");
       else
 
          Loading_Index_Version :=
-           Semantic_Versioning.Parse (Value.Get (Key).As_String,
+           Semantic_Versioning.Parse (Value.Get (Found_Key).As_String,
                                       Relaxed => False);
 
          --  Check for a branch mismatch first
