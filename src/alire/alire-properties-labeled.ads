@@ -10,7 +10,10 @@ package Alire.Properties.Labeled with Preelaborate is
    --  properties with the same label at present.
 
    type Labels is
-     (Author,
+     (Alire_Version,
+      --  Firt Alire version able to load the metadata
+
+      Author,
       --  VIP
 
       Description,
@@ -140,6 +143,7 @@ private
 
    function Key (L : Labels) return String
    is (case L is
+          when Alire_Version      => TOML_Keys.Alire_Version,
           when Author             => TOML_Keys.Author,
           when Description        => TOML_Keys.Description,
           when Executable         => TOML_Keys.Executable,
