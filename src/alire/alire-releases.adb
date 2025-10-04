@@ -8,6 +8,7 @@ with Alire.Defaults;
 with Alire.Errors;
 with Alire.Flags;
 with Alire.Formatting;
+with Alire.Index;
 with Alire.Origins.Deployers.System;
 with Alire.Paths;
 with Alire.Properties.Bool;
@@ -480,15 +481,16 @@ package body Alire.Releases is
          Name      => Base.Name,
          Notes     => New_Notes,
 
-         Version      => Base.Version,
-         Origin       => Base.Origin,
-         Dependencies => Base.Dependencies,
-         Equivalences => Base.Equivalences,
-         Pins         => Base.Pins,
-         Forbidden    => Base.Forbidden,
-         Properties   => Base.Properties,
-         Available    => Base.Available,
-         Imported     => Base.Imported)
+         Alire_Version => Base.Alire_Version,
+         Version       => Base.Version,
+         Origin        => Base.Origin,
+         Dependencies  => Base.Dependencies,
+         Equivalences  => Base.Equivalences,
+         Pins          => Base.Pins,
+         Forbidden     => Base.Forbidden,
+         Properties    => Base.Properties,
+         Available     => Base.Available,
+         Imported      => Base.Imported)
       do
          null;
       end return;
@@ -532,19 +534,20 @@ package body Alire.Releases is
                          Properties   : Conditional.Properties;
                          Available    : Conditional.Availability)
                          return Release
-   is (Prj_Len      => Name.Length,
-       Notes_Len    => Notes'Length,
-       Name         => Name,
-       Version      => Version,
-       Origin       => Origin,
-       Notes        => Notes,
-       Dependencies => Dependencies,
-       Equivalences => <>,
-       Pins         => <>,
-       Forbidden    => Conditional.For_Dependencies.Empty,
-       Properties   => Properties,
-       Available    => Available,
-       Imported     => No_TOML_Value);
+   is (Prj_Len       => Name.Length,
+       Notes_Len     => Notes'Length,
+       Alire_Version => Index.Version,
+       Name          => Name,
+       Version       => Version,
+       Origin        => Origin,
+       Notes         => Notes,
+       Dependencies  => Dependencies,
+       Equivalences  => <>,
+       Pins          => <>,
+       Forbidden     => Conditional.For_Dependencies.Empty,
+       Properties    => Properties,
+       Available     => Available,
+       Imported      => No_TOML_Value);
 
    -----------------------
    -- New_Empty_Release --
@@ -566,19 +569,20 @@ package body Alire.Releases is
       Properties   : Conditional.Properties   :=
         Default_Properties)
       return         Release is
-     (Prj_Len      => Name.Length,
-      Notes_Len    => 0,
-      Name         => Name,
-      Version      => +"0.0.0",
-      Origin       => Origin,
-      Notes        => "",
-      Dependencies => Dependencies,
-      Equivalences => <>,
-      Pins         => <>,
-      Forbidden    => Conditional.For_Dependencies.Empty,
-      Properties   => Properties,
-      Available    => Conditional.Empty,
-      Imported     => No_TOML_Value
+     (Prj_Len       => Name.Length,
+      Notes_Len     => 0,
+      Name          => Name,
+      Alire_Version => Index.Version,
+      Version       => +"0.0.0",
+      Origin        => Origin,
+      Notes         => "",
+      Dependencies  => Dependencies,
+      Equivalences  => <>,
+      Pins          => <>,
+      Forbidden     => Conditional.For_Dependencies.Empty,
+      Properties    => Properties,
+      Available     => Conditional.Empty,
+      Imported      => No_TOML_Value
      );
 
    -------------------------
@@ -818,6 +822,15 @@ package body Alire.Releases is
    function Has_Property (R : Release; Key : String) return Boolean
    is (for some Prop of Conditional.Enumerate (R.Properties) =>
           Prop.Key = AAA.Strings.To_Lower_Case (Key));
+
+   ------------------
+   -- Has_Property --
+   ------------------
+
+   function Has_Property (R : Release; Key : Alire.Properties.Labeled.Labels)
+                          return Boolean
+   is (not Alire.Properties.Labeled.Filter
+       (Conditional.Enumerate (R.Properties), Key).Is_Empty);
 
    ------------------------
    -- Labeled_Properties --
@@ -1121,6 +1134,13 @@ package body Alire.Releases is
 
       This.Version := Semver.New_Version (This.Property (Labeled.Version));
 
+      if This.Has_Property (Labeled.Alire_Version) then
+         This.Alire_Version :=
+           Semver.New_Version (This.Property (Labeled.Alire_Version));
+      else
+         This.Alire_Version := Index.Default_Unknown_Version;
+      end if;
+
       --  Check for remaining keys, which must be erroneous:
       return From.Report_Extra_Keys;
    end From_TOML;
@@ -1309,20 +1329,21 @@ package body Alire.Releases is
    function Whenever (R : Release;
                       P : Alire.Properties.Vector)
                       return Release
-   is (Prj_Len      => R.Prj_Len,
-       Notes_Len    => R.Notes_Len,
-       Name         => R.Name,
-       Version      => R.Version,
-       Origin       => R.Origin.Whenever (P),
-       Notes        => R.Notes,
-       Dependencies => R.Dependencies.Evaluate (P),
-       Equivalences => R.Equivalences,
-       Pins         => R.Pins,
-       Forbidden    => R.Forbidden.Evaluate (P),
-       Properties   => R.Properties.Evaluate (P),
-       Available    => R.Available.Evaluate (P),
+   is (Prj_Len       => R.Prj_Len,
+       Notes_Len     => R.Notes_Len,
+       Name          => R.Name,
+       Alire_Version => R.Alire_Version,
+       Version       => R.Version,
+       Origin        => R.Origin.Whenever (P),
+       Notes         => R.Notes,
+       Dependencies  => R.Dependencies.Evaluate (P),
+       Equivalences  => R.Equivalences,
+       Pins          => R.Pins,
+       Forbidden     => R.Forbidden.Evaluate (P),
+       Properties    => R.Properties.Evaluate (P),
+       Available     => R.Available.Evaluate (P),
 
-       Imported     => No_TOML_Value
+       Imported      => No_TOML_Value
        --  We are discarding information above, so the imported information
        --  would no longer match.
       );

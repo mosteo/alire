@@ -21,6 +21,7 @@ package Alire.Properties.From_TOML is
    subtype Property_Loader is Prop_Loader.Static_Loader;
 
    type Property_Keys is (Actions,
+                          Alire_Version,
                           Authors,
                           Auto_GPR_With,
                           Build_Profiles,
@@ -96,6 +97,7 @@ package Alire.Properties.From_TOML is
 
    Cardinality : constant array (Property_Keys) of Cardinalities :=
                    (Actions            => Multiple,
+                    Alire_Version      => Unique,
                     Authors            => Multiple,
                     Auto_GPR_With      => Unique,
                     Build_Profiles     => Unique,
@@ -150,6 +152,7 @@ package Alire.Properties.From_TOML is
 
    Release_Loaders : constant Loader_Array (Property_Keys) :=
      (Actions        => Properties.Actions.From_TOML'Access,
+      Alire_Version  => Labeled.From_TOML'Access,
       Authors        => Labeled.From_TOML'Access,
       Auto_GPR_With  => Bool.From_TOML'Access,
       Build_Profiles => Properties.Build_Profiles.From_TOML'Access,
