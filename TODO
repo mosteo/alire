@@ -1,0 +1,4 @@
+- [ ] Test version inheritance from index
+- [ ] Test version overriding from manifest
+- [ ] Test version defaulting when none in local manifest
+- Use manifest version to warn when Alire too new/old

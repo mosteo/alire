@@ -4,6 +4,7 @@ with Ada.Wide_Wide_Text_IO;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 with Alire.Directories;
+with Alire.Index;
 with Alire.Paths;
 with Alire.Settings.Builtins;
 with Alire.Roots.Optional;
@@ -396,6 +397,19 @@ package body Alr.Commands.Init is
 
       Unused : Boolean;
    begin
+      --  Default initialization just to raise awareness when a field is added
+      Info := (Alire_Version => +Alire.Index.Version.Image,
+               Name          => <>,
+               Is_Library    => <>,
+               GitHub_Login  => <>,
+               Username      => <>,
+               Email         => <>,
+               Licenses      => <>,
+               Description   => <>,
+               Website       => <>,
+               Tags          => AAA.Strings.Empty_Vector,
+               With_Test     => <>);
+
       Cmd.Forbids_Structured_Output;
 
       if Cmd.Bin and then Cmd.Lib then

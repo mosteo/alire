@@ -2,6 +2,7 @@ name = "@_LOWER:NAME_@"
 description = "@_DESCRIPTION_@"
 version = "0.1.0-dev"
 
+alire-version = "@_ALIRE_VERSION_@"
 authors = ["@_USERNAME_@"]
 maintainers = ["@_USERNAME_@ <@_EMAIL_@>"]
 @@IF@@ @_LOGIN_@ /= ""

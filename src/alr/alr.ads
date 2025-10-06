@@ -29,6 +29,8 @@ package Alr with Preelaborate is
 
    function "+" (S : Alire.UString) return String
                  renames Alire.UStrings.To_String;
+   function "+" (S : String) return Alire.UString
+                 renames Alire.UStrings.To_Unbounded_String;
 
    --  Some Paths constants that help to break circularities
 
