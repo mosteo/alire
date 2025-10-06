@@ -2,6 +2,8 @@ name = "@_NAME_@_tests"
 description = "Tests for the built-in Alire test runner"
 version = "0.0.0-test"
 
+alire-version = "@_ALIRE_VERSION_@"
+
 [[depends-on]]
 @_NAME_@ = "*"
 

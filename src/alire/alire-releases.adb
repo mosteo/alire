@@ -1134,10 +1134,49 @@ package body Alire.Releases is
 
       This.Version := Semver.New_Version (This.Property (Labeled.Version));
 
+      --  Extract the minimum Alire_Version required, if any
       if This.Has_Property (Labeled.Alire_Version) then
-         This.Alire_Version :=
-           Semver.New_Version (This.Property (Labeled.Alire_Version));
+         --  This should always be a ">=" set, so we check it
+         declare
+            Key : constant String := Labeled.Key (Labeled.Alire_Version);
+            Img : constant String := This.Property (Labeled.Alire_Version);
+            Set : Semver.Basic.Version_Set;
+            use Semver.Basic;
+         begin
+            Set := To_Set (Img);
+
+            --  Just a single ">=" restriction
+            if Set.Length /= 1 or else
+               Condition (Set.Element (1)) /= At_Least
+            then
+               Raise_Checked_Error
+                 (Key & " property must be a single '>=version', but got: '"
+                  & Img & "'");
+            end if;
+
+            --  Extract the version
+            This.Alire_Version := On_Version (Set.Element (1));
+
+         exception
+            when Semver.Malformed_Input =>
+               Raise_Checked_Error
+                 ("Malformed alire-version property: " & Img);
+         end;
       else
+         if Source in Manifest.Local and then Strict then
+            Raise_Checked_Error
+              ("Missing required '" & Labeled.Key (Labeled.Alire_Version)
+               & "' property in manifest");
+         end if;
+
+         case Source is
+            when Manifest.Index =>
+               --  Default to current index version if not in manifest proper
+               This.Alire_Version := From.Metadata.Version;
+            when Manifest.Local =>
+               --  Last version before we introduced versioning of manifests
+               This.Alire_Version := Index.Default_Unknown_Version;
+         end case;
          This.Alire_Version := Index.Default_Unknown_Version;
       end if;
 

@@ -29,16 +29,17 @@ package Alire.Templates.Builtins is
    --  Info needed to initialize a crate, MUST NOT be TOML-escaped (done here),
    --  and its corresponding template name.
    type Crate_Init_Info is record
-      Name         : UString;            -- NAME
-      Is_Library   : Boolean;            -- IS_LIBRARY
-      GitHub_Login : UString;            -- LOGIN
-      Username     : UString;            -- USERNAME
-      Email        : UString;            -- EMAIL
-      Licenses     : UString;            -- LICENSES
-      Description  : UString;            -- DESCRIPTION
-      Website      : UString;            -- WEBSITE
-      Tags         : AAA.Strings.Vector; -- TAGS (expanded: "tag1", "tag2"...)
-      With_Test    : Boolean;            -- WITH_TEST
+      Alire_Version : UString;            -- ALIRE_VERSION
+      Name          : UString;            -- NAME
+      Is_Library    : Boolean;            -- IS_LIBRARY
+      GitHub_Login  : UString;            -- LOGIN
+      Username      : UString;            -- USERNAME
+      Email         : UString;            -- EMAIL
+      Licenses      : UString;            -- LICENSES
+      Description   : UString;            -- DESCRIPTION
+      Website       : UString;            -- WEBSITE
+      Tags          : AAA.Strings.Vector; -- TAGS (expanded: "tag1", "tag2"...)
+      With_Test     : Boolean;            -- WITH_TEST
    end record;
 
    function Init_Crate_Translation (Info : Crate_Init_Info)
@@ -103,14 +104,15 @@ private
    function Init_Crate_Translation (Info : Crate_Init_Info)
                                     return Translations
    is (New_Translation
-       .Append ("NAME",        Info.Name)
-       .Append ("IS_LIBRARY",  Info.Is_Library)
-       .Append ("LOGIN",       Info.GitHub_Login)
-       .Append ("USERNAME",    Escape (+Info.Username))
-       .Append ("EMAIL",       Info.Email)
-       .Append ("LICENSES",    Info.Licenses)
-       .Append ("DESCRIPTION", Escape (+Info.Description))
-       .Append ("WEBSITE",     Info.Website)
+       .Append ("ALIRE_VERSION", Info.Alire_Version)
+       .Append ("NAME",          Info.Name)
+       .Append ("IS_LIBRARY",    Info.Is_Library)
+       .Append ("LOGIN",         Info.GitHub_Login)
+       .Append ("USERNAME",      Escape (+Info.Username))
+       .Append ("EMAIL",         Info.Email)
+       .Append ("LICENSES",      Info.Licenses)
+       .Append ("DESCRIPTION",   Escape (+Info.Description))
+       .Append ("WEBSITE",       Info.Website)
        .Append ("TAGS",
          (if Info.Tags.Is_Empty
           then ""
