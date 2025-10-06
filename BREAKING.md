@@ -12,7 +12,7 @@ may change.
 - alr: setting a builtin without `--builtin` will emit a new warning.
 - alr: style checks are now disabled by default in all build profiles.
 - alr: index versioning matches Alire versions to avoid double versioning and
-  minimize confusions. This is how Cargo and OPAM work too.
+  minimize confusions.
 
 ### We are here
 

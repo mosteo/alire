@@ -55,8 +55,8 @@ package Alire.Index is
    Min_Version : constant Semantic_Versioning.Version;
    --  Based on the constant defined in private section. This is the minimum
    --  version of *Alire* that the index requires to be loaded. IOWs, is the
-   --  last Alire version in which *breaking changes* were introduced into the
-   --  index.
+   --  last Alire version in which *backwards-incompatible changes* were
+   --  introduced into the index.
 
    Version     : constant Semantic_Versioning.Version;
    --  Last version of *Alire* in which backwards-compatible changes
@@ -64,8 +64,7 @@ package Alire.Index is
    --  "alire-version" in crate manifests and to index.toml in indexes. It
    --  is also the version expected for the community index.
 
-   --  In practice, alr can load any index with `alire-version` >=
-   --  Min_Compatible_Version
+   --  In practice, alr can load any index with `alire-version` >= Min_Version
 
    --  Example for compatible index (newer compatible alr):
    --    Index says alire-version = 3.5
@@ -80,7 +79,7 @@ package Alire.Index is
    --    Alire      version       = 2.1
    --  The index might be compatible or not, depending on which features it
    --  actually uses. Alr will warn that the index or manifest is for a more
-   --  recent version of alr, and do a best effor try to load.
+   --  recent version of alr, and do a best effort try to load.
 
    --  Example for incompatible index (alr too new):
    --    Index says alire-version = 2.0
@@ -88,7 +87,7 @@ package Alire.Index is
    --    Here index version       = 3.0
    --    Alire      version       = 3.1
    --  In this case, the index is incompatible as breaking changes were
-   --  introduced with Alire 3.0. Despite Alire being >= 2.0 (requested by the
+   --  introduced with Alire 3.0, despite Alire being >= 2.0 (requested by the
    --  index). This means that index was loadable by Alire >=2.0 & <3.0. But,
    --  obviously, indexes cannot know the future.
 
@@ -220,7 +219,7 @@ private
    --  UPDATE ON BREAKING CHANGES
    Min_Version_Str : constant String := "1.1";
 
-   --  UPDATE ON INCREMENTAL CHANGES
+   --  UPDATE ON BREAKING/INCREMENTAL CHANGES
    Version_Str : constant String := "1.4";
    --  3.0: introduces `alire-version` property
 
