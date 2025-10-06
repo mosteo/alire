@@ -11,7 +11,7 @@ package Alire.Properties.Labeled with Preelaborate is
 
    type Labels is
      (Alire_Version,
-      --  Firt Alire version able to load the metadata
+      --  First Alire version able to load the metadata (>= set)
 
       Author,
       --  VIP
