@@ -137,7 +137,7 @@ package body Alire.Utils.Text_Files is
                              Lines      => <>,
                              Orig       => <>)
       do
-         Trace.Debug ("Opening file: " & From);
+         Trace.Debug ("Opening file (as text): " & From);
          Trace.Debug ("With file size:" & Adirs.Size (From)'Image);
 
          Open (F, In_File, From);

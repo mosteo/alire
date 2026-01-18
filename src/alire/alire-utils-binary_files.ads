@@ -1,5 +1,4 @@
 private with Ada.Finalization;
-private with Ada.Streams;
 
 package Alire.Utils.Binary_Files is
 
@@ -9,14 +8,16 @@ package Alire.Utils.Binary_Files is
 
    function Read (From : File_Path) return Raw_Sequence;
 
-   function As_String (this : Raw_Sequence) return access String;
+   function As_String (This : Raw_Sequence) return access String;
 
 private
 
-   type Bytes_Ptr is access Ada.Streams.Stream_Element_Array;
+   type String_Access is access String;
 
    type Raw_Sequence is new Ada.Finalization.Limited_Controlled with record
-      Bytes : Bytes_Ptr;
+      Data : String_Access;
    end record;
+
+   overriding procedure Finalize (This : in out Raw_Sequence);
 
 end Alire.Utils.Binary_Files;

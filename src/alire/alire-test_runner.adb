@@ -3,11 +3,13 @@ with Ada.Containers.Indefinite_Vectors;
 with Ada.Strings.Fixed;
 with Ada.Text_IO;
 with GNAT.OS_Lib;
+with GNAT.IO;
 with System.Multiprocessors;
 
 with Alire.Directories; use Alire.Directories;
 with Alire.OS_Lib;
 with Alire.Paths;
+with Alire.Utils.Binary_Files;
 with Alire.Utils.Text_Files;
 with Alire.VFS;
 
@@ -25,7 +27,7 @@ package body Alire.Test_Runner is
       procedure Pass (Msg : String);
       --  Report a passing test with a message
 
-      procedure Fail (Msg : String; Output : AAA.Strings.Vector);
+      procedure Fail (Msg : String; Output : String);
       --  Report a failing test with a message and its output
 
       function Total_Count return Natural;
@@ -54,15 +56,16 @@ package body Alire.Test_Runner is
       -- Fail --
       ----------
 
-      procedure Fail (Msg : String; Output : AAA.Strings.Vector) is
+      procedure Fail (Msg : String; Output : String) is
       begin
          Failed := Failed + 1;
          Trace.Always ("[ " & CLIC.TTY.Error ("FAIL") & " ] " & Msg);
-         if not Output.Is_Empty then
+         if Output /= "" then
             Trace.Always ("*** Test output ***");
-            for L of Output loop
-               Trace.Always (CLIC.TTY.Dim (L));
-            end loop;
+            GNAT.IO.Put (CLIC.TTY.Dim (Output));
+            --  Use raw output to avoid encoding errors. A bad encoding in the
+            --  test output will be propagated to the console but at least the
+            --  user sees it as-is.
             Trace.Always ("*** End Test output ***");
          end if;
       end Fail;
@@ -254,14 +257,13 @@ package body Alire.Test_Runner is
               Args,
               Out_Filename,
               Err_To_Out => True);
-         --  NOTE: the contents of Out_Filename may end up being something
-         --  else than UTF-8/Unicode (E.g. Latin-1). To be taken into account
-         --  when reading test output.
+         --  NOTE: the contents of Out_Filename may end up being something else
+         --  than UTF-8/Unicode if some test outputs garbage. To be taken into
+         --  account when reading test output.
 
          if Pid = Invalid_Pid then
             Driver.Fail
-              (String (Test_Name) & " (failed to start!)",
-               AAA.Strings.Empty_Vector);
+              (String (Test_Name) & " (failed to start!)", Output => "");
          else
             Running_Tests.Insert (Pid, Full_Print_Name);
             Output_Files.Insert (Pid, Out_Filename);
@@ -318,10 +320,11 @@ package body Alire.Test_Runner is
             Driver.Pass (Running_Tests (Pid));
          else
             declare
-               use Utils.Text_Files;
-               Output : File := Load (Output_Files (Pid), Backup => False);
+               use Utils.Binary_Files;
             begin
-               Driver.Fail (Running_Tests (Pid), Output.Lines.all);
+               Driver.Fail (Running_Tests (Pid),
+                            Binary_Files.Read
+                              (Output_Files (Pid)).As_String.all);
             end;
          end if;
 
