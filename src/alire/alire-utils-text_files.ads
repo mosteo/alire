@@ -11,6 +11,7 @@ package Alire.Utils.Text_Files is
    type File (<>) is tagged limited private;
 
    function Create (Name : Any_Path) return File;
+   --  Returns an empty file
 
    function Load (From       : Any_Path;
                   Backup     : Boolean := True;
@@ -46,6 +47,7 @@ private
       Name       : Any_Path (1 .. Length);
       Lines      : aliased AAA.Strings.Vector; -- The final contents
       Orig       : AAA.Strings.Vector;         -- The original contents
+      Load_OK    : Boolean := False; -- To detect problems during loading
       Backup     : Boolean := True;
       Backup_Dir : Any_Path (1 .. Backup_Len);
    end record;

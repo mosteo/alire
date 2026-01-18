@@ -1,3 +1,4 @@
+with Ada.Directories;
 with Ada.Wide_Wide_Text_IO; use Ada.Wide_Wide_Text_IO;
 
 with AAA.Strings; use AAA.Strings;
@@ -7,6 +8,8 @@ with Alire.Directories;
 with LML;
 
 package body Alire.Utils.Text_Files is
+
+   package Adirs renames Ada.Directories;
 
    ------------------
    -- Append_Lines --
@@ -46,6 +49,10 @@ package body Alire.Utils.Text_Files is
    begin
       if This.Lines = This.Orig then
          Trace.Debug ("No changes to save in " & This.Name);
+         return;
+      elsif not This.Load_OK then
+         Trace.Debug ("File " & This.Name & " could not be loaded, "
+                      & "skipping rewrite of its contents.");
          return;
       else
          Trace.Debug ("Replacing contents of " & This.Name);
@@ -103,6 +110,7 @@ package body Alire.Utils.Text_Files is
        Length     => Name'Length,
        Backup_Len => 0,
        Name       => Name,
+       Load_OK    => True,
        Backup     => False,
        Backup_Dir => "",
        Lines      => <>,
@@ -123,18 +131,34 @@ package body Alire.Utils.Text_Files is
                              Length     => From'Length,
                              Backup_Len => Backup_Dir'Length,
                              Name       => From,
+                             Load_OK    => False,
                              Backup     => Backup,
                              Backup_Dir => Backup_Dir,
                              Lines      => <>,
                              Orig       => <>)
       do
+         Trace.Debug ("Opening file: " & From);
+         Trace.Debug ("With file size:" & Adirs.Size (From)'Image);
+
          Open (F, In_File, From);
          while not End_Of_File (F) loop
-            This.Orig.Append (LML.Encode (Get_Line (F)));
+            declare
+               Curr_Line : Positive := 1;
+            begin
+               This.Orig.Append (LML.Encode (Get_Line (F)));
+               Curr_Line := Curr_Line + 1;
+            exception
+               when E : others =>
+                  Trace.Error ("Cannot read line" & Curr_Line'Image
+                               & " from file: " & From);
+                  Log_Exception (E);
+                  raise;
+            end;
          end loop;
          Close (F);
 
-         This.Lines := This.Orig;
+         This.Load_OK := True;
+         This.Lines   := This.Orig;
       end return;
    end Load;
 

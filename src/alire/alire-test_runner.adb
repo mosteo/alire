@@ -254,6 +254,10 @@ package body Alire.Test_Runner is
               Args,
               Out_Filename,
               Err_To_Out => True);
+         --  NOTE: the contents of Out_Filename may end up being something
+         --  else than UTF-8/Unicode (E.g. Latin-1). To be taken into account
+         --  when reading test output.
+
          if Pid = Invalid_Pid then
             Driver.Fail
               (String (Test_Name) & " (failed to start!)",
@@ -315,7 +319,7 @@ package body Alire.Test_Runner is
          else
             declare
                use Utils.Text_Files;
-               Output : File := Load (Output_Files (Pid), False);
+               Output : File := Load (Output_Files (Pid), Backup => False);
             begin
                Driver.Fail (Running_Tests (Pid), Output.Lines.all);
             end;
