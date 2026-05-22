@@ -64,16 +64,18 @@ if [ ! -f awsres ]; then
     pushd "$tmp"
 
     unset GNATCOLL_ALIRE_PREFIX
-    # Install awsres from AWS
-    if ! alr get --build aws^24; then
-        echo "Failed to build awsres from AWS" >&2
-        exit 1
-    fi
 
     # Force gnat 13 as later ones have a linking problem with aws^24
-    pushd $(alr get aws^24 --dirname)
+    if ! alr get aws^24; then
+        echo "Failed to get awsres from AWS" >&2
+        exit 1
+    fi
+    pushd "$(alr get aws^24 --dirname)"
         alr toolchain --select gnat_native^13 gprbuild
-        alr build
+        if ! alr build; then
+            echo "Failed to build awsres from AWS" >&2
+            exit 1
+        fi
     popd
 
     find . -name awsres -exec cp {} "$workdir" \;
