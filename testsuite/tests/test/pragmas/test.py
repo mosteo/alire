@@ -207,6 +207,24 @@ assert_substring("duplicate Alire_Test pragma key", p.out)
 # Display name falls back to the path-derived form, not "first" / "second".
 assert_match(r".*\[ PASS \] *\d+[smh]\d+ dup_key.*", p.out)
 
+# Malformed Alire_Test pragma (unsupported expression as value): strict
+# mode causes Invalid_Pragma_Syntax, which the runner translates to a
+# pre-run failure. The test is marked FAIL without being spawned.
+os.chdir("..")
+shutil.rmtree("xxx")
+
+init_local_crate("xxx", with_test=True)
+os.remove("./tests/src/xxx_tests-assertions_enabled.adb")
+write_test(
+    "bad_syntax",
+    "null;",
+    prelude='pragma Alire_Test (Timeout, 1.0 * 60.0);\n',
+)
+
+p = run_alr("test", quiet=False, complain_on_error=False)
+assert_substring("failed to parse strict pragma", p.out)
+assert_match(r".*\[ FAIL \] *\d+[smh]\d+ bad_syntax.*", p.out)
+
 # Unrecognized Alire_Test key: only Name, Should_Fail and Timeout are
 # defined by the schema (see scripts/schemas/test-pragmas.yaml). Any other
 # key is diagnosed; the action is driven by tests.on_unknown_parameter,

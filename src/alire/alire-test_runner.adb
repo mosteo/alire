@@ -1,4 +1,5 @@
 with Ada.Calendar;
+with Ada.Exceptions;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Indefinite_Vectors;
 with Ada.Strings.Fixed;
@@ -22,10 +23,13 @@ with Alire.Utils.Text_Files;
 with Alire.VFS;
 
 with CLIC.TTY;
+
 with Den.Walk;
+
 with LML.Input.Pragmas.File_IO;
 with LML.Output.Factory;
 with LML.Output.Yeison;
+with LML.Options.Pragmas;
 
 package body Alire.Test_Runner is
    use Alire.Utils;
@@ -390,7 +394,9 @@ package body Alire.Test_Runner is
       Builder     : LML.Output.Yeison.Builder;
       All_Pragmas : Yeison.Any;
    begin
-      LML.Input.Pragmas.File_IO.From_File (Filename, Builder);
+      LML.Input.Pragmas.File_IO.From_File
+        (Filename, Builder,
+         LML.Options.Pragmas.Strict_On (Test.Pragma_Name));
       All_Pragmas := Builder.To_Yeison;
 
       declare
@@ -420,7 +426,9 @@ package body Alire.Test_Runner is
                TC.Timeout := Duration (Timeout_Value.As_Real.Value);
             end if;
 
-            if Should_Fail_Value.Kind = Bool_Kind then
+            if Should_Fail_Value.Kind = Nil_Kind then
+               TC.Should_Fail := True;
+            elsif Should_Fail_Value.Kind = Bool_Kind then
                TC.Should_Fail := Should_Fail_Value.As_Bool;
             end if;
          end;
@@ -478,6 +486,12 @@ package body Alire.Test_Runner is
    exception
       when LML.Duplicate_Pragma =>
          Trace.Error (Filename & ": duplicate Alire_Test pragma key");
+      when E : LML.Invalid_Pragma_Syntax =>
+         Trace.Error (Filename & ": " & LML.Encode (LML.Decode
+           (Ada.Exceptions.Exception_Message (E))));
+         TC.Pre_Fail := True;
+         TC.Reason   := +LML.Encode (LML.Decode
+           (Ada.Exceptions.Exception_Message (E)));
    end Load_Test_Case_Pragmas;
 
    ---------------------
