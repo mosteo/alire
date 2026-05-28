@@ -43,6 +43,19 @@ def find_test(tests, name):
     raise AssertionError(f"no test named {name!r} in {[t['name'] for t in tests]}")
 
 
+def parse_json_result(p):
+    """Return the parsed JSON object from p.out.
+
+    Trace.Error/Warning go to stderr, which e3 merges with stdout, so p.out
+    may contain diagnostic lines before/after the JSON blob.  This function
+    finds the first line that starts with '{' and parses from there.
+    """
+    for line in p.out.splitlines():
+        if line.lstrip().startswith("{"):
+            return json.loads(line)
+    raise AssertionError(f"no JSON object found in output:\n{p.out}")
+
+
 init_local_crate("xxx", with_test=True)
 
 # Drop the default failing test that init seeds.
