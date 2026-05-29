@@ -23,6 +23,7 @@ clic = "~0.3"
 den = "~0.2"
 dirty_booleans = "~0.1"
 diskflags = "~0.1"
+gnat_native = "/=13.2" # Known finalization bug
 gnatcoll = "^21"
 lml = "~0.2"
 minirest = "~0.3"
