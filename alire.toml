@@ -92,7 +92,7 @@ commit = "40cb993cc0bdd84bd7c4d5ff0438380751497c16"
 
 [pins.lml]
 url    = "https://github.com/mosteo/lml_ada.git"
-commit = "cfcf35d02fe8202b1e613766160f89a9b4ffd657"
+commit = "ecace013bdca01519c790618fa350a8d83d23696"
 
 [pins.minirest]
 url    = "https://github.com/mosteo/minirest.git"
