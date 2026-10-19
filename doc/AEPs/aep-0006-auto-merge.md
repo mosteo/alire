@@ -150,6 +150,11 @@ to ASCII `[a-z0-9_]`, which rules out Unicode homoglyphs. However:
    - Files load in alphabetical order, so the new file wins.
 
    The duplicate check exists only in `alr publish`.
+
+   *Fixed in [#2198](https://github.com/alire-project/alire/pull/2198)
+   (draft): duplicates are rejected order-independently, leading zeros are
+   rejected by the version parser, and dropped releases no longer register
+   their `provides` aliases.*
 1. **Index-wide denial of service.**
    - `Index_On_Disk.Load` catches only `Checked_Error`
      (`src/alire/alire-index_on_disk.adb:118`).
@@ -157,7 +162,9 @@ to ASCII `[a-z0-9_]`, which rules out Unicode homoglyphs. However:
      their next update:
      - `Constraint_Error` for a local origin path that does not exist
        (`src/alire/alire-toml_index.adb:549-556`);
-     - `Constraint_Error` for version numbers that overflow;
+     - `Constraint_Error` for version numbers that overflow (now
+       `Malformed_Input`, see
+       [semantic_versioning#28](https://github.com/alire-project/semantic_versioning/pull/28));
      - `Storage_Error` from deep nesting in the recursive TOML parser.
    - There is no limit on file size, nesting depth, key count or string
      length.
@@ -167,7 +174,8 @@ to ASCII `[a-z0-9_]`, which rules out Unicode homoglyphs. However:
    - System package names are not validated. A name starting with `-` becomes
      an option to `dpkg`/`apt-cache` during detection, and to `apt-get install`
      under `sudo`
-     (`src/alire/alire-origins-deployers-system-apt.adb`).
+     (`src/alire/alire-origins-deployers-system-apt.adb`). *Fixed in
+     [#2197](https://github.com/alire-project/alire/pull/2197).*
    - Git URLs are passed to `git clone` without a `--` separator
      (`src/alire/alire-vcss-git.adb`).
 1. **Path traversal.** Nothing rejects `..` or absolute paths in `subdir`
@@ -219,9 +227,15 @@ it gets a `needs-review` label and follows the manual process.
    deletes nothing.
 1. The crate already has at least one release in the **base branch**.
 1. The version:
-   - has no build metadata and no leading zeros;
+   - is a strict semantic version: `X.Y.Z` with no leading zeros, and valid
+     pre-release and build identifiers;
+   - has at most 32 characters after `X.Y.Z` (pre-release and build metadata,
+     separators included);
    - does not match any existing release, comparing with build metadata
      ignored.
+
+   Build metadata itself is allowed: 17 community releases use it, and once
+   duplicates are rejected it can no longer shadow a release.
 1. The PR author is listed in `maintainers-logins` of the latest release of the
    crate **in the base branch**. The PR's own files are never used to decide
    authorship.
@@ -340,17 +354,30 @@ These changes protect users regardless of how a manifest was merged.
 1. Isolate errors per manifest. A manifest that fails to load is reported and
    skipped instead of aborting the whole index load. Convert unexpected
    exceptions during loading (`Constraint_Error`, `Storage_Error`) into
-   checked errors tied to the offending file.
+   checked errors tied to the offending file. *Isolation done in
+   [#2194](https://github.com/alire-project/alire/pull/2194); specific
+   sources and paths outside manifest loading remain.*
 1. Versions in index manifests:
-   - reject build metadata, leading zeros, and numbers that overflow;
-   - detect duplicate versions regardless of load order, and report them as
-     an error rather than silently keeping the first one.
+   - require strict semantic versions, with a bounded length after `X.Y.Z`,
+     and report numbers that overflow as errors;
+   - detect duplicate versions (equal when ignoring build metadata)
+     regardless of load order, and report them as an error rather than
+     silently keeping the first one.
+
+   *Done in [#2198](https://github.com/alire-project/alire/pull/2198)
+   (draft), with
+   [semantic_versioning#28](https://github.com/alire-project/semantic_versioning/pull/28)
+   and [#29](https://github.com/alire-project/semantic_versioning/pull/29).
+   Build metadata is kept, since rejecting duplicates already prevents
+   shadowing.*
 1. Validate path fields (`subdir`, `project-files`, `executables`,
    `archive-name`, `actions.directory`): relative paths only, and no `..`
    segments.
-1. Validate system package names (restricted character set, no leading `-`).
-   Add `--` before positional arguments in package-manager and VCS
-   invocations.
+1. Validate system package names (no leading `-`, no paths, URLs or
+   patterns). Add `--` before positional arguments in package-manager and VCS
+   invocations. *Package names in
+   [#2197](https://github.com/alire-project/alire/pull/2197). VCS invocations
+   remain.*
 1. Reject URLs whose remainder after the `vcs+` prefix starts with `-`.
 1. Tie new manifest syntax (such as `[[mirror]]`) to the index version, so
    older clients never see manifests they cannot parse.
@@ -714,38 +741,173 @@ sample index. See "Mirror workflows" in the alire-index-checks README.
 Phase 1: `alr` loader hardening
 -------------------------------
 
-- [ ] **Fault isolation per manifest.**
-  - A manifest that fails to load is reported and skipped, so the rest of the
-    index still loads.
-  - `alr index --check` still fails on it.
-  - Test: an index with one broken and one valid crate. The valid crate is
-    still usable, and `--check` fails.
-- [ ] **No unexpected exceptions from loading.** Convert `Constraint_Error`
-  and `Storage_Error` raised while loading a manifest into checked errors
-  naming the file. This includes the missing local origin path in
-  `alire-toml_index.adb` and version numbers that overflow. Add a test for
-  each trigger.
+- [x] **Fault isolation per manifest.** ([#2194](https://github.com/alire-project/alire/pull/2194))
+  - A manifest that fails to load, for any exception, is skipped with a
+    one-line warning, so the rest of the index still loads. This applies to
+    both full and single-crate loads, in `Load_Manifest`.
+  - `alr index --check` and `alr publish` (strict loading) still fail. They
+    re-raise checked errors unchanged and wrap any other exception into a
+    checked error naming the file.
+  - An externals manifest registers its aliases only once it has fully
+    loaded, so a skipped one leaves no orphan alias in the providers cache.
+  - New test `index/skip-invalid-manifest`. It has valid crates, a crate
+    with one invalid release, invalid TOML, and a `Constraint_Error`, and is
+    run both with and without the providers cache.
+  - 16 existing tests now check what users see, through the new
+    `assert_invalid_manifest` helper: the original command warns and skips
+    the manifest, and `alr index --check` reports the same detail as an
+    error.
+  - Side fixes in the same PR:
+    - `macos-26` arm64 is dropped from the toolchain CI matrix. Since runner
+      image 20261013, its SDK lists `arm64e.x1` in `libSystem.tbd`, which the
+      GNAT linker rejects. alire-index's dev builds were moved off
+      `macos-latest` for the same reason
+      ([alire-index#2241](https://github.com/alire-project/alire-index/pull/2241)).
+    - The `self_update` tests set `GH_TOKEN`, which alr reads, from CI's
+      `GITHUB_TOKEN`. Their `curl` mock was bypassed on Windows by MSYS2, so
+      their GitHub API calls were unauthenticated and rate-limited.
+- [ ] **No unexpected exceptions from loading, remaining sources.** Partly
+  covered by [#2194](https://github.com/alire-project/alire/pull/2194): any exception from a single manifest is already isolated,
+  or reported in strict mode. What remains:
+  - Turn the specific sources into checked errors with clear messages, so
+    `alr index --check` does not show internal exception names such as
+    `CONSTRAINT_ERROR`. The source left is the explicit `Constraint_Error`
+    for a missing local origin path in `Index_Release`. Version numbers that
+    overflow now raise `Malformed_Input` with a clear message
+    ([semantic_versioning#28](https://github.com/alire-project/semantic_versioning/pull/28)).
+  - Cover the loading paths outside `Load_Manifest`: `Check_Index`, which
+    does not handle a malformed or overflowing `index.toml` version, and the
+    providers cache.
+
+  `Storage_Error` from deep nesting cannot be relied on to be catchable. It
+  belongs to the nesting depth limit below.
 - [ ] **Manifest size limit.** Add a setting (for example
   `index.max_manifest_size`) with a conservative default, checked before
   parsing. Test with an oversized manifest.
 - [ ] **TOML nesting depth limit.** Add a depth limit to the parser, either
   upstream in `ada-toml` or as a pre-parse scan. Test with a deeply nested
-  manifest.
-- [ ] **Canonical index versions.** Reject build metadata and leading zeros
-  in versions of index manifests (not of workspace manifests). Test
-  `crate-1.0.0+x.toml` and `crate-01.0.0.toml`.
-- [ ] **Duplicate versions.** Report duplicate versions as an error regardless
-  of load order, instead of silently keeping the first one. Test with
-  duplicates whose files sort before and after the original.
+  manifest. This is the real protection against `Storage_Error` from stack
+  exhaustion, which may not be catchable once it happens.
+- [x] **[semantic_versioning] Strict parsing per the specification.**
+  ([#28](https://github.com/alire-project/semantic_versioning/pull/28),
+  [#29](https://github.com/alire-project/semantic_versioning/pull/29))
+  - Strict `Parse` now enforces every rule of the specification except that
+    all three numbers be present, which the new `Has_All_Points` reports
+    separately. Leading zeros in `X.Y.Z` and in numeric pre-release
+    identifiers are rejected. Pre-release and build identifiers must be
+    non-empty and made of `[0-9A-Za-z-]`. Relaxed parsing is unchanged.
+  - `Point` is widened to `0 .. 999_999_999_999_999_999`, the largest
+    all-nines value within `Long_Long_Integer`. Larger numbers raise
+    `Malformed_Input` instead of `Constraint_Error`. The specification sets
+    no limit.
+  - Default image options are restored to the output before grouped options
+    ([#24](https://github.com/alire-project/semantic_versioning/pull/24)),
+    which had changed them.
+  - The arm64 macOS CI job moves to `macos-15`.
+  - New tests: `large_numbers`, `leading_zeros`, `identifiers`,
+    `all_points` and `default_output`.
+- [x] **[alire-index] Index data ahead of strict versions.**
+  - [#2263](https://github.com/alire-project/alire-index/pull/2263):
+    `globe_3d-2025.04.18` renamed to `2025.4.18`, and seven
+    `honki_tonks_zivilisationen` manifests fixed whose internal version had
+    leading zeros.
+  - [#2264](https://github.com/alire-project/alire-index/pull/2264): removed
+    `uxstrings-0.3.0+alpha-20220727.toml`. Its version equals that of
+    `uxstrings-0.3.0+alpha-20220226.toml` when build metadata is ignored, and
+    it sorts after it, so it was never served.
+
+  The whole community index then passes the strict `alr index --check` of
+  the next item.
+- [x] **[alire-index-checks] Version suffix length.**
+  ([#28](https://github.com/alire-project/alire-index-checks/pull/28))
+  `check-changes.py` rejects added manifests with more than 32 characters
+  after `X.Y.Z` (`MAX_VERSION_SUFFIX_LENGTH`, the same limit as alr). This
+  enforces the limit on the current index branch, before alr 3.0.
+- [ ] **Strict and unique index versions.**
+  ([#2198](https://github.com/alire-project/alire/pull/2198), draft; stacked
+  on [#2197](https://github.com/alire-project/alire/pull/2197))
+  - **Duplicates**, for any index version. In `Load_From_Index_Internal`,
+    each release manifest lists its sibling manifests and fails if any of
+    them has the same version, comparing with build metadata ignored. The
+    check is stateless and order-independent: every file in a duplicate group
+    is skipped with a warning, or reported naming all of them under
+    `index --check`.
+  - **Name and contents agree**, for any index version. The version in the
+    file name and in the manifest must be equal and have the same build
+    metadata. Short forms such as `1.0` remain valid in the contents.
+  - **Strict versions**, from index 1.5.0 on
+    (`Features.Index.Strict_Release_Versions`). The version in the file name
+    must pass strict `Parse` and `Has_All_Points`, and have at most 32
+    characters after `X.Y.Z` (`Index.Max_Version_Suffix_Length`). The checks
+    are in `Index.Error_In_Release_Version`. `X.Y.Z` is limited only by
+    `Point`. With the stricter library, leading zeros are rejected in every
+    manifest, index or local, whatever the index version.
+  - **`provides` shadowing.** `Index.Add` registers aliases only for releases
+    that were actually added, so a dropped release can no longer replace the
+    reviewed one under a provided name.
+  - Tests:
+    - `index/duplicate-manifests`;
+    - `index/version-name-mismatch`;
+    - `index/provides-duplicate-release`, with two indexes of different
+      priority;
+    - Ada unit tests `alr_tests-release_versions` for the suffix limit and the
+      delegation to the library.
+  - The new testsuite helper `use_index_with_manifests` generalizes
+    `use_single_manifest_index` to several manifests.
+  - The submodule and the `alire.toml` pin of `semantic_versioning` move to
+    the merge of #29. `BREAKING.md` records each change under alr 3.0.0 and
+    index 1.5.0.
+  - To do when the 1.5.0 index branch is created: an end-to-end test of
+    strict versions against an index of that version.
 - [ ] **Path validation helper.** Add one helper that rejects absolute paths
   and `..` segments, and apply it to `subdir` and `archive-name`. Test each
   field.
 - [ ] **Path validation, remaining fields.** Apply the same helper to
   `project-files`, `executables` and `actions.directory`. Test each field.
 - [ ] **System package names.**
-  - Restrict package names to a safe character set with no leading `-`.
-  - Add `--` before package names in every system deployer that supports it.
-  - Test with a `-o...` package name.
+  ([#2197](https://github.com/alire-project/alire/pull/2197), in review)
+  - Validated when the index loads, in both external `origin` lists (every
+    `case(...)` branch) and `system:` origins. The check is
+    `Origins.Error_In_System_Package_Name`, with a precondition on
+    `New_System` as a last check.
+  - The rule is targeted, not a character allowlist. A crate owner can
+    already make users install any repository package by naming it, so only
+    names that would escape "a package from the system repositories" are
+    rejected:
+    - a first character that is not an ASCII letter or digit (options,
+      `./` or `/` paths, apt `~`/`?` patterns, emerge `@` sets, MacPorts `+`
+      variants);
+    - whitespace or control characters;
+    - `://` (URLs);
+    - more than 256 characters.
+
+    Everything else, e.g. `gtk+3`, `dev-libs/gmp`, `openssl@3`,
+    `pkg[feature]`, `libhello~1`, is accepted. All 240 community-index names
+    pass.
+  - Not handled on purpose: relative local files such as `dir/x.deb`. The
+    tools only take a name as a file if that file exists, and an attacker
+    cannot plant one in the user's working directory without already running
+    code. Matching package-file extensions was considered and dropped: it adds
+    nothing real and can never be complete.
+  - `--` is added before the name only for tools known to honour it: `dpkg`,
+    `apt-cache`, `apt-get`, `pacman` and `rpm`. It is not used for `dnf`/`yum`
+    (dnf5 unverified), `zypper`, `emerge` and other Gentoo tools, `brew` or
+    `port`, where an unexpected `--` could break installation in ways CI
+    cannot catch. A comment in `Alire.Origins.Deployers.System` records this
+    policy.
+  - Tests:
+    - `index/bad-system-package-name`: bad names are skipped with a warning
+      and rejected by `index --check`; unusual legal names load fine.
+    - `externals/system-package-separator`: a mocked `dpkg`/`apt-cache`
+      checks that `--` comes right before the name.
+    - New testsuite helper `use_single_manifest_index`: one manifest per
+      index, with settings prepared once and copied.
+- [ ] **pacman search escaping.** ([#2196](https://github.com/alire-project/alire/pull/2196), in review) Found while exploring the
+  deployers. `pacman -Ss` takes a regex, and the name was inserted
+  unescaped, so names like `gtk+3` were never detected on Arch and MSYS2.
+  Now escaped with `Utils.Regex.Escape`, which also gains `{}$|`.
+  - Tests: `externals/pacman-regex-name` (mocked `pacman`), and Ada unit
+    tests for `Escape` in `tests_ada`.
 - [ ] **VCS URL arguments.** Reject VCS URLs whose part after the `vcs+`
   prefix starts with `-`, and add `--` before positional arguments in
   `git`/`hg` invocations. Test with a `git+--upload-pack=...` URL.
